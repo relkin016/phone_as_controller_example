@@ -26,7 +26,11 @@ else:
     pass_line = f'ansible_ssh_pass={default}\n'
     become_line = f'ansible_become_pass={default}\n'
 
-with open('/tmp/nmap_scan.txt') as f:
+# Динамічно визначаємо тимчасову директорію
+tmp_dir = os.environ.get('TMPDIR', '/tmp')
+nmap_file = os.path.join(tmp_dir, 'nmap_scan.txt')
+
+with open(nmap_file) as f:
     content = f.read()
 
 hosts = []
