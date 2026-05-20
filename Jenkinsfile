@@ -56,29 +56,35 @@ pipeline {
             }
         }
 
-        stage('2. nmap scan') {
+stage('2. nmap scan') {
             steps {
                 sh '''
                     echo "=== Визначення підмережі ==="
                     if [ -n "$SUBNET" ]; then
                         TARGET_SUBNET="$SUBNET"
                     else
-                        # Автовизначення з дефолтного маршруту
-                        GW=$(ip route show default | awk '/default/{print $3; exit}')
+                        # Використовуємо ifconfig для Termux, беремо IP з wlan0
+                        GW=$(ifconfig wlan0 2>/dev/null | grep 'inet ' | awk '{print $2}')
+                        if [ -z "$GW" ]; then
+                            echo "Помилка: не вдалося визначити IP з wlan0. Можливо, Wi-Fi відключено."
+                            exit 1
+                        fi
                         TARGET_SUBNET=$(echo "$GW" | sed 's/\\.[0-9]*$/.0\\/24/')
                         echo "Автовизначено: $TARGET_SUBNET"
                     fi
 
+                    # Визначаємо правильну тимчасову директорію для Termux (або дефолтну для Linux)
+                    NMAP_OUT="${TMPDIR:-/tmp}/nmap_scan.txt"
+
                     echo "=== nmap сканування $TARGET_SUBNET ==="
                     # Шукаємо хости з відкритим SSH (порт 22)
-                    # -sV визначає версію сервісу щоб відфільтрувати Ubuntu
                     nmap -p 22 --open -sV \
                          --script banner \
-                         -oG /tmp/nmap_scan.txt \
+                         -oG "$NMAP_OUT" \
                          "$TARGET_SUBNET"
 
                     echo "=== Результат ==="
-                    cat /tmp/nmap_scan.txt
+                    cat "$NMAP_OUT"
                 '''
             }
         }
@@ -135,7 +141,7 @@ stage('4. Copy SSH keys') {
 
     post {
         always {
-            sh 'rm -f /tmp/nmap_scan.txt || true'
+            sh 'rm -f ${TMPDIR:-/tmp}/nmap_scan.txt || true'
         }
         success {
             echo "Налаштування завершено успішно."
