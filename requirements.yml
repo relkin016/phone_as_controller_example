@@ -1,4 +1,4 @@
-# example/requirements.yml
+# requirements.yml
 roles:
   - name: devsec.os_hardening
     src: https://github.com/dev-sec/ansible-os-hardening

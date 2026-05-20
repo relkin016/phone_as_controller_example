@@ -1,4 +1,4 @@
-# example/playbook.yml
+# playbook.yml
 - name: Ubuntu Server Hardening
   hosts: scaned
   gather_facts: true

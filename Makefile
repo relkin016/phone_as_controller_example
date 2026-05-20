@@ -1,4 +1,4 @@
-# example/Makefile
+# Makefile
 
 ROLES_PATH   := roles
 REQUIREMENTS := requirements.yml

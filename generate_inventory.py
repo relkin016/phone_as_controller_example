@@ -1,4 +1,4 @@
-# example/generate_inventory.py
+# generate_inventory.py
 import re, os, subprocess, sys
 
 vault_pass = None

@@ -1,4 +1,4 @@
-// exapmle/Jenkinsfile
+// Jenkinsfile
 pipeline {
     agent any
 
