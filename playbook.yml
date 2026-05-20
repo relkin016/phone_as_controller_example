@@ -1,0 +1,32 @@
+# example/playbook.yml
+- name: Ubuntu Server Hardening
+  hosts: scaned
+  gather_facts: true
+  become: true
+
+  vars:
+    # ── devsec.ssh_hardening ──────────────────────────────────────────────────
+    ssh_permit_root_login: "no"
+    ssh_password_authentication: "no"
+    ssh_port: [22]
+    ssh_max_auth_retries: 3
+    ssh_client_alive_interval: 300
+    ssh_client_alive_count_max: 2
+
+    # ── devsec.os_hardening ───────────────────────────────────────────────────
+    os_desktop_enable: false
+    os_security_kernel_enable_module_loading: true
+    os_security_users_allow: []
+    ufw_default_input_policy: DROP
+    ufw_default_output_policy: ACCEPT
+    ufw_default_forward_policy: DROP
+
+    # ── geerlingguy.security ──────────────────────────────────────────────────
+    security_autoupdate_enabled: true
+    security_fail2ban_enabled: true
+
+  roles:
+    - devsec.ssh_hardening
+    - devsec.os_hardening
+    - geerlingguy.security
+
