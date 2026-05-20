@@ -46,6 +46,9 @@ pipeline {
         stage('1. Install requirements') {
             steps {
                 sh '''
+                    echo "=== Встановлення системних залежностей Termux ==="
+                    pkg install -y nmap iproute2
+
                     echo "=== make install ==="
                     cd ${FEATURE_DIR}
                     make install
