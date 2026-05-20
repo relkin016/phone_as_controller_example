@@ -87,29 +87,30 @@ pipeline {
              }
          }
 
-        stage('4. Copy SSH keys') {
+stage('4. Copy SSH keys') {
             steps {
                 sh '''
                     echo "=== Отримуємо ssh_pass з Vault ==="
-                    SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
-                        --vault-password-file ${VAULT_PASS} \
+                    SSH_PASS=$(ansible-vault view ${VAULT_FILE} \\
+                        --vault-password-file ${VAULT_PASS} \\
                         | awk '/^ssh_pass:/{print $2}')
 
                     echo "=== Прокидуємо SSH ключ на знайдені хости ==="
                     while IFS= read -r ip; do
-                        # Пропускаємо рядки що не є IP
-                        [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || continue
+                        # ПРОБЛЕМА БУЛА ТУТ: екрануємо крапки як \\.
+                        [[ "$ip" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$ ]] || continue
 
                         echo "  → $ip"
-                        sshpass -p "$SSH_PASS" \
-                            ssh-copy-id \
-                                -o StrictHostKeyChecking=no \
-                                -o IdentitiesOnly=yes \
-                                -i ~/.ssh/id_ed25519.pub \
-                                "${ANSIBLE_USER}@${ip}" \
-                        && echo "    ✓ ключ скопійовано" \
+                        sshpass -p "$SSH_PASS" \\
+                            ssh-copy-id \\
+                                -o StrictHostKeyChecking=no \\
+                                -o IdentitiesOnly=yes \\
+                                -i ~/.ssh/id_ed25519.pub \\
+                                "${ANSIBLE_USER}@${ip}" \\
+                        && echo "    ✓ ключ скопійовано" \\
                         || echo "    ✗ помилка (можливо ключ вже є)"
-                    done < <(grep -E '^\d+\.\d+\.\d+\.\d+' ${FEATURE_DIR}/inventory.ini)
+                    # ТА ТУТ: екрануємо \\d та \\.
+                    done < <(grep -E '^\\d+\\.\\d+\\.\\d+\\.\\d+' ${FEATURE_DIR}/inventory.ini)
                 '''
             }
         }
