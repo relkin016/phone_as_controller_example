@@ -56,28 +56,31 @@ pipeline {
             }
         }
 
-stage('2. nmap scan') {
+        stage('2. nmap scan') {
             steps {
                 sh '''
                     echo "=== Визначення підмережі ==="
                     if [ -n "$SUBNET" ]; then
                         TARGET_SUBNET="$SUBNET"
                     else
-                        # Використовуємо ifconfig для Termux, беремо IP з wlan0
-                        GW=$(ifconfig wlan0 2>/dev/null | grep 'inet ' | awk '{print $2}')
+                        # Використовуємо ip a для пошуку глобальної IPv4 адреси (ігноруємо lo)
+                        GW=$(ip -4 addr show scope global | awk '/inet /{print $2}' | cut -d/ -f1 | head -n1)
+
                         if [ -z "$GW" ]; then
-                            echo "Помилка: не вдалося визначити IP з wlan0. Можливо, Wi-Fi відключено."
+                            echo "Помилка: не вдалося знайти IP-адресу через 'ip a'."
                             exit 1
                         fi
+
+                        # Перетворюємо IP (напр. 192.168.100.87) на підмережу (192.168.100.0/24)
                         TARGET_SUBNET=$(echo "$GW" | sed 's/\\.[0-9]*$/.0\\/24/')
-                        echo "Автовизначено: $TARGET_SUBNET"
+                        echo "Ваш IP у Termux: $GW"
+                        echo "Автовизначено підмережу: $TARGET_SUBNET"
                     fi
 
-                    # Визначаємо правильну тимчасову директорію для Termux (або дефолтну для Linux)
+                    # Тимчасовий файл у правильній директорії Termux
                     NMAP_OUT="${TMPDIR:-/tmp}/nmap_scan.txt"
 
                     echo "=== nmap сканування $TARGET_SUBNET ==="
-                    # Шукаємо хости з відкритим SSH (порт 22)
                     nmap -p 22 --open -sV \
                          --script banner \
                          -oG "$NMAP_OUT" \
@@ -96,7 +99,7 @@ stage('2. nmap scan') {
              }
          }
 
-stage('4. Copy SSH keys') {
+        stage('4. Copy SSH keys') {
             steps {
                 sh '''
                     echo "=== Отримуємо ssh_pass з Vault ==="
