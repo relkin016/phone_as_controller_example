@@ -131,7 +131,7 @@ pipeline {
                     ).trim()
                     echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
                     def checkFlag = params.DRY_RUN ? '--check --diff' : ''
-                    def ansibleHome = System.getenv('HOME') + '/ansible'
+                    def ansibleHome = env.HOME + '/ansible'
                     ansiblePlaybook(
                         playbook: "${env.FEATURE_DIR}/playbook.yml",
                         inventory: env.INVENTORY,
@@ -148,7 +148,9 @@ pipeline {
 
     post {
         always {
-            sh 'rm -f ${TMPDIR:-/tmp}/nmap_scan.txt || true'
+            node('') {
+                sh 'rm -f ${TMPDIR:-/tmp}/nmap_scan.txt || true'
+            }
         }
         success {
             echo "Налаштування завершено успішно."
