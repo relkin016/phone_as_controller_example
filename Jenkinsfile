@@ -16,7 +16,7 @@ pipeline {
     environment {
         FEATURE_DIR      = '.'
         VAULT_PASS       = "${env.HOME}/ansible/.vault_pass"
-        VAULT_FILE       = "${env.HOME}/ansible/group_vars/termux/vault.yaml"
+        VAULT_FILE       = "${env.HOME}/ansible/group_vars/all/vault.yaml"
         INVENTORY        = "${env.HOME}/ansible/inventory.ini"
         ANSIBLE_USER     = "${params.ANSIBLE_USER ?: 'admin'}"
         PLAYBOOK         = './playbook.yml'
