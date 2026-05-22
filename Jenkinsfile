@@ -121,7 +121,6 @@ pipeline {
                     done
                 '''
             }
-        }
 
             stage('5. Deploy playbook') {
                 steps {
