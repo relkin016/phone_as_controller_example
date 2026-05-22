@@ -15,9 +15,9 @@ pipeline {
 
     environment {
         FEATURE_DIR      = '.'
-        VAULT_PASS       = "${System.getenv('HOME')}/ansible/.vault_pass"
-        VAULT_FILE       = "${System.getenv('HOME')}/ansible/group_vars/termux/vault.yaml"
-        INVENTORY        = "${System.getenv('HOME')}/ansible/inventory.ini"
+        VAULT_PASS  = '${HOME}/ansible/.vault_pass'
+        VAULT_FILE  = '${HOME}/ansible/group_vars/termux/vault.yaml'
+        INVENTORY   = '${HOME}/ansible/inventory.ini'
         ANSIBLE_USER     = "${params.ANSIBLE_USER ?: 'admin'}"
         PLAYBOOK         = './playbook.yml'
         DEFAULT_SSH_PASS = '1111'
