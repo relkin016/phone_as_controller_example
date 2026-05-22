@@ -21,6 +21,7 @@ pipeline {
         ANSIBLE_USER     = "${params.ANSIBLE_USER ?: 'admin'}"
         PLAYBOOK         = './playbook.yml'
         DEFAULT_SSH_PASS = '1111'
+        ANSIBLE_CONFIG   = "${env.HOME}/ansible/ansible.cfg"
     }
 
     parameters {
@@ -122,17 +123,15 @@ pipeline {
             }
         }
 
-        stage('5. Deploy playbook') {
-            steps {
-                script {
-                    def hostCount = sh(
-                        script: "grep -c -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' ${env.INVENTORY} || echo 5",
-                        returnStdout: true
-                    ).trim()
-                    echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
-                    def checkFlag = params.DRY_RUN ? '--check --diff' : ''
-                    def ansibleHome = env.HOME + '/ansible'
-                    withEnv(["ANSIBLE_CONFIG=${env.HOME}/ansible/ansible.cfg"]) {
+            stage('5. Deploy playbook') {
+                steps {
+                    script {
+                        def hostCount = sh(
+                            script: "grep -c -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' ${env.INVENTORY} || echo 5",
+                            returnStdout: true
+                        ).trim()
+                        echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
+                        def checkFlag = params.DRY_RUN ? '--check --diff' : ''
                         ansiblePlaybook(
                             playbook: "${env.FEATURE_DIR}/playbook.yml",
                             inventory: env.INVENTORY,

@@ -1,6 +1,6 @@
 # Makefile
 
-ROLES_PATH   := roles
+ROLES_PATH   := $(HOME)/ansible/roles
 REQUIREMENTS := requirements.yml
 
 SMEE_URL      := https://smee.io/4d4G597DPLT9vOeR
