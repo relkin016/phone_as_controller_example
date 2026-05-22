@@ -15,6 +15,11 @@ SMEE_LOG      := $(HOME)/.jenkins/logs/smee.log
 install:
 	@echo "==> Встановлення Ansible ролей з Galaxy..."
 	ansible-galaxy install -r $(REQUIREMENTS) -p $(ROLES_PATH) --force
+	@echo "==> Патч devsec.ssh_hardening для Jinja2 3.1.4+..."
+	sed -i 's/#jinja2: trim_blocks: "True"/#jinja2: trim_blocks: True/' \
+		$(ROLES_PATH)/devsec.ssh_hardening/templates/opensshd.conf.j2
+	sed -i 's/#jinja2: lstrip_blocks: "True"/#jinja2: lstrip_blocks: True/' \
+		$(ROLES_PATH)/devsec.ssh_hardening/templates/opensshd.conf.j2
 	@echo "==> Встановлення smee-client..."
 	$(MAKE) smee-install
 	@echo "==> Готово."
