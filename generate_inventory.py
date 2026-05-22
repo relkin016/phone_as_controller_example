@@ -55,7 +55,6 @@ with open(inventory_path, 'w') as f:
     for ip in hosts:
         f.write(f'{ip}\n')
     f.write('\n[scanned:vars]\n')
-
     ansible_user = os.environ.get("ANSIBLE_USER", "admin")
     f.write(f'ansible_user={ansible_user}\n')
     f.write(pass_line)

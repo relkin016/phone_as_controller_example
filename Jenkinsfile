@@ -125,14 +125,20 @@ pipeline {
         stage('5. Deploy playbook') {
             steps {
                 script {
+                    def hostCount = sh(
+                        script: "grep -c -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' ${env.INVENTORY} || echo 5",
+                        returnStdout: true
+                    ).trim()
+                    echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
                     def checkFlag = params.DRY_RUN ? '--check --diff' : ''
                     def ansibleHome = System.getenv('HOME') + '/ansible'
                     ansiblePlaybook(
                         playbook: "${env.FEATURE_DIR}/playbook.yml",
-                        inventory: ${env.INVENTORY},
+                        inventory: env.INVENTORY,
                         colorized: true,
                         extras: """--vault-password-file ${env.VAULT_PASS} \
                                    --roles-path ${ansibleHome}/roles \
+                                   -f ${hostCount} \
                                    ${checkFlag}"""
                     )
                 }
