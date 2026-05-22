@@ -132,15 +132,14 @@ pipeline {
                     echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
                     def checkFlag = params.DRY_RUN ? '--check --diff' : ''
                     def ansibleHome = env.HOME + '/ansible'
-                    ansiblePlaybook(
-                        playbook: "${env.FEATURE_DIR}/playbook.yml",
-                        inventory: env.INVENTORY,
-                        colorized: true,
-                        extras: """--vault-password-file ${env.VAULT_PASS} \
-                                   --roles-path ${ansibleHome}/roles \
-                                   -f ${hostCount} \
-                                   ${checkFlag}"""
-                    )
+                    withEnv(["ANSIBLE_CONFIG=${env.HOME}/ansible/ansible.cfg"]) {
+                        ansiblePlaybook(
+                            playbook: "${env.FEATURE_DIR}/playbook.yml",
+                            inventory: env.INVENTORY,
+                            colorized: true,
+                            extras: "--vault-password-file ${env.VAULT_PASS} -f ${hostCount} ${checkFlag}"
+                        )
+                    }
                 }
             }
         }
