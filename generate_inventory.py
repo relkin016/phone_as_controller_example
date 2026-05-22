@@ -1,5 +1,9 @@
 # generate_inventory.py
 import os
+import subprocess
+import re
+import sys
+
 ansible_dir = os.path.join(os.environ['HOME'], 'ansible')
 inventory_path = os.path.join(ansible_dir, 'inventory.ini')
 
@@ -28,37 +32,40 @@ else:
     pass_line = f'ansible_ssh_pass={default}\n'
     become_line = f'ansible_become_pass={default}\n'
 
-# Динамічно визначаємо тимчасову директорію
 tmp_dir = os.environ.get('TMPDIR', '/tmp')
 nmap_file = os.path.join(tmp_dir, 'nmap_scan.txt')
 
-with open(nmap_file) as f:
-    content = f.read()
+try:
+    with open(nmap_file) as f:
+        content = f.read()
+except FileNotFoundError:
+    print("УВАГА: Файл сканування nmap не знайдено!")
+    sys.exit(1)
 
 hosts = []
-current_ip = None
 for line in content.splitlines():
     ip_match = re.search(r'Host: (\d+\.\d+\.\d+\.\d+)', line)
-    if ip_match:
-        current_ip = ip_match.group(1)
-    if current_ip and ('Ubuntu' in line or 'ubuntu' in line):
-        if current_ip not in hosts:
-            hosts.append(current_ip)
+    if ip_match and '22/open' in line:
+        ip = ip_match.group(1)
+        if ip not in hosts:
+            hosts.append(ip)
 
-with open('./inventory.ini', 'w') as f:
-    f.write('[scaned]\n')
+with open(inventory_path, 'w') as f:
+    f.write('[scanned]\n')
     for ip in hosts:
         f.write(f'{ip}\n')
-    f.write('\n')
-    f.write('[scaned:vars]\n')
-    f.write(f'ansible_user={os.environ["ANSIBLE_USER"]}\n')
+    f.write('\n[scanned:vars]\n')
+
+    ansible_user = os.environ.get("ANSIBLE_USER", "admin")
+    f.write(f'ansible_user={ansible_user}\n')
     f.write(pass_line)
     f.write(become_line)
-    f.write('ansible_ssh_common_args=-o StrictHostKeyChecking=no\n')
+    f.write('ansible_ssh_common_args="-o StrictHostKeyChecking=no"\n')
 
-print(f"Знайдено {len(hosts)} Ubuntu хостів:")
+print(f"Знайдено {len(hosts)} хостів з відкритим SSH:")
 for h in hosts:
     print(f"  {h}")
+
 if not hosts:
-    print("УВАГА: Ubuntu хостів не знайдено!")
+    print("УВАГА: Жодного хоста з відкритим портом 22 не знайдено!")
     sys.exit(1)
