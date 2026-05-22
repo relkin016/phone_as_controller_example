@@ -47,8 +47,7 @@ pipeline {
             steps {
                 sh '''
                     echo "=== Встановлення системних залежностей Termux ==="
-                    pkg install -y nmap iproute2
-
+                    pkg install -y nmap iproute2 sshpass
                     echo "=== make install ==="
                     cd ${FEATURE_DIR}
                     make install
