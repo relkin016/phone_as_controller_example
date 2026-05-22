@@ -1,9 +1,31 @@
 # playbook.yml
-- name: Ubuntu Server Hardening
-  hosts: scaned
-  gather_facts: true
-  ignore_unreachable: true
-  become: true
+---
+- name: "Перевірка з'єднання зі знайденими хостами"
+  hosts: scanned
+  gather_facts: no
+  tasks:
+    - name: "Пінгуємо хост"
+      ping:
+      ignore_unreachable: yes
+      register: host_ping
+
+    - name: "Додаємо хост до тимчасової групи, якщо він відповів"
+      group_by:
+        key: "online_hosts"
+      when: host_ping.unreachable is not defined
+
+- name: "Перевірка результатів пінгу"
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Зупиняємо пайплайн, якщо живих хостів 0"
+      fail:
+        msg: "КРИТИЧНА ПОМИЛКА: Жоден з хостів не відповів по SSH!"
+      when: groups.get('online_hosts', []) | length == 0
+
+- name: "Розгортання конфігурації на доступних хостах"
+  hosts: online_hosts
+  gather_facts: yes
 
   vars:
     # ── devsec.ssh_hardening ──────────────────────────────────────────────────
