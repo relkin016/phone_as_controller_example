@@ -1,5 +1,4 @@
 # playbook.yml
----
 - name: "Перевірка з'єднання зі знайденими хостами"
   hosts: scanned
   gather_facts: no
