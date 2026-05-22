@@ -15,9 +15,9 @@ pipeline {
 
     environment {
         FEATURE_DIR      = '.'
-        VAULT_PASS = "${env.HOME}/ansible/.vault_pass"
-        VAULT_FILE = "${env.HOME}/ansible/group_vars/termux/vault.yaml"
-        INVENTORY  = "${env.HOME}/ansible/inventory.ini"
+        VAULT_PASS       = "${env.HOME}/ansible/.vault_pass"
+        VAULT_FILE       = "${env.HOME}/ansible/group_vars/termux/vault.yaml"
+        INVENTORY        = "${env.HOME}/ansible/inventory.ini"
         ANSIBLE_USER     = "${params.ANSIBLE_USER ?: 'admin'}"
         PLAYBOOK         = './playbook.yml'
         DEFAULT_SSH_PASS = '1111'
@@ -26,19 +26,19 @@ pipeline {
 
     parameters {
         string(
-                name: 'ANSIBLE_USER',
-                defaultValue: 'admin',
-                description: 'SSH користувач на цільових хостах'
+            name: 'ANSIBLE_USER',
+            defaultValue: 'admin',
+            description: 'SSH користувач на цільових хостах'
         )
         string(
-                name: 'SUBNET',
-                defaultValue: '',
-                description: 'Підмережа для сканування (напр. 192.168.1.0/24). Порожньо = автовизначення'
+            name: 'SUBNET',
+            defaultValue: '',
+            description: 'Підмережа для сканування (напр. 192.168.1.0/24). Порожньо = автовизначення'
         )
         booleanParam(
-                name: 'DRY_RUN',
-                defaultValue: false,
-                description: 'ansible --check --diff без реальних змін'
+            name: 'DRY_RUN',
+            defaultValue: false,
+            description: 'ansible --check --diff без реальних змін'
         )
     }
 
@@ -121,27 +121,27 @@ pipeline {
                     done
                 '''
             }
+        }
 
-            stage('5. Deploy playbook') {
-                steps {
-                    script {
-                        def hostCount = sh(
-                            script: "grep -c -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' ${env.INVENTORY} || echo 5",
-                            returnStdout: true
-                        ).trim()
-                        echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
-                        def checkFlag = params.DRY_RUN ? '--check --diff' : ''
-                        ansiblePlaybook(
-                            playbook: "${env.FEATURE_DIR}/playbook.yml",
-                            inventory: env.INVENTORY,
-                            colorized: true,
-                            extras: "--vault-password-file ${env.VAULT_PASS} -f ${hostCount} ${checkFlag}"
-                        )
-                    }
+        stage('5. Deploy playbook') {
+            steps {
+                script {
+                    def hostCount = sh(
+                        script: "grep -c -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' ${env.INVENTORY} || echo 5",
+                        returnStdout: true
+                    ).trim()
+                    echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
+                    def checkFlag = params.DRY_RUN ? '--check --diff' : ''
+                    ansiblePlaybook(
+                        playbook: "${env.FEATURE_DIR}/playbook.yml",
+                        inventory: env.INVENTORY,
+                        colorized: true,
+                        extras: "--vault-password-file ${env.VAULT_PASS} -f ${hostCount} ${checkFlag}"
+                    )
                 }
             }
         }
-    }
+    } // Тепер блок stages закривається правильно тут
 
     post {
         always {
