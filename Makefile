@@ -19,13 +19,6 @@ install:
 	$(MAKE) smee-install
 	@echo "==> Готово."
 
-clean:
-	@echo "==> Видалення встановлених ролей..."
-	rm -rf $(ROLES_PATH)/devsec.os_hardening
-	rm -rf $(ROLES_PATH)/devsec.ssh_hardening
-	rm -rf $(ROLES_PATH)/geerlingguy.security
-	@echo "==> Готово."
-
 # ── smee ──────────────────────────────────────────────────────────────────────
 
 smee-install:
