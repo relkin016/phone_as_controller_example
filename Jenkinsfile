@@ -106,7 +106,7 @@ pipeline {
                         --vault-password-file ${VAULT_PASS} \
                         | awk '/^ssh_pass:/{print $2}')
 
-                    while IFS= read -r ip; do
+                    grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY" | while IFS= read -r ip; do
                         [[ "$ip" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$ ]] || continue
                         echo "  → $ip"
                         sshpass -p "$SSH_PASS" \
@@ -117,7 +117,7 @@ pipeline {
                                 "${ANSIBLE_USER}@${ip}" \
                         && echo "    ✓ ключ скопійовано" \
                         || echo "    ✗ помилка"
-                    done < <(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' $INVENTORY)
+                    done
                 '''
             }
         }
