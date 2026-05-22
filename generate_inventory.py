@@ -53,8 +53,6 @@ with open('./inventory.ini', 'w') as f:
     f.write('[scaned:vars]\n')
     f.write(f'ansible_user={os.environ["ANSIBLE_USER"]}\n')
     f.write(pass_line)
-    f.write('ansible_become=yes\n')
-    f.write('ansible_become_method=sudo\n')
     f.write(become_line)
     f.write('ansible_ssh_common_args=-o StrictHostKeyChecking=no\n')
 
