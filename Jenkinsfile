@@ -5,7 +5,7 @@ pipeline {
     triggers {
         GenericTrigger(
             genericVariables: [
-                [key: 'ANSIBLE_USER', value: '$.ansible_user', defaultValue: 'ubuntu']
+                [key: 'ANSIBLE_USER', value: '$.ansible_user', defaultValue: 'roman']
             ],
             token: 'example',
             printContributedVariables: false,
@@ -14,12 +14,12 @@ pipeline {
     }
 
     environment {
-        FEATURE_DIR = '.'
-        VAULT_PASS  = '../init/.vault_pass'
-        VAULT_FILE  = '../init/group_vars/termux/vault.yaml'
-        INVENTORY   = './inventory.ini'
-        PLAYBOOK    = './playbook.yml'
-        MAKEFILE    = './Makefile'
+        FEATURE_DIR      = '.'
+        VAULT_PASS       = "${System.getenv('HOME')}/ansible/.vault_pass"
+        VAULT_FILE       = "${System.getenv('HOME')}/ansible/group_vars/termux/vault.yaml"
+        INVENTORY        = "${System.getenv('HOME')}/ansible/inventory.ini"
+        PLAYBOOK         = './playbook.yml'
+
         DEFAULT_SSH_PASS = '1111'
     }
 
@@ -42,7 +42,6 @@ pipeline {
     }
 
     stages {
-
         stage('1. Install requirements') {
             steps {
                 sh '''
@@ -92,37 +91,33 @@ pipeline {
             }
         }
 
-         stage('3. Generate inventory') {
-             steps {
-                 sh 'python3 ${FEATURE_DIR}/generate_inventory.py'
-                 sh "grep -v 'pass' ./inventory.ini"
-             }
-         }
+        stage('3. Generate inventory') {
+            steps {
+                sh 'python3 ${FEATURE_DIR}/generate_inventory.py'
+                sh "grep -v 'pass' ${System.getenv('HOME')}/ansible/inventory.ini"
+            }
+        }
 
         stage('4. Copy SSH keys') {
             steps {
                 sh '''
-                    echo "=== Отримуємо ssh_pass з Vault ==="
-                    SSH_PASS=$(ansible-vault view ${VAULT_FILE} \\
-                        --vault-password-file ${VAULT_PASS} \\
+                    ANSIBLE_HOME="$HOME/ansible"
+                    SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
+                        --vault-password-file ${VAULT_PASS} \
                         | awk '/^ssh_pass:/{print $2}')
 
-                    echo "=== Прокидуємо SSH ключ на знайдені хости ==="
                     while IFS= read -r ip; do
-                        # ПРОБЛЕМА БУЛА ТУТ: екрануємо крапки як \\.
                         [[ "$ip" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$ ]] || continue
-
                         echo "  → $ip"
-                        sshpass -p "$SSH_PASS" \\
-                            ssh-copy-id \\
-                                -o StrictHostKeyChecking=no \\
-                                -o IdentitiesOnly=yes \\
-                                -i ~/.ssh/id_ed25519.pub \\
-                                "${ANSIBLE_USER}@${ip}" \\
-                        && echo "    ✓ ключ скопійовано" \\
-                        || echo "    ✗ помилка (можливо ключ вже є)"
-                    # ТА ТУТ: екрануємо \\d та \\.
-                    done < <(grep -E '^\\d+\\.\\d+\\.\\d+\\.\\d+' ${FEATURE_DIR}/inventory.ini)
+                        sshpass -p "$SSH_PASS" \
+                            ssh-copy-id \
+                                -o StrictHostKeyChecking=no \
+                                -o IdentitiesOnly=yes \
+                                -i ~/.ssh/id_ed25519.pub \
+                                "${ANSIBLE_USER}@${ip}" \
+                        && echo "    ✓ ключ скопійовано" \
+                        || echo "    ✗ помилка"
+                    done < <(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' $INVENTORY)
                 '''
             }
         }
@@ -131,11 +126,14 @@ pipeline {
             steps {
                 script {
                     def checkFlag = params.DRY_RUN ? '--check --diff' : ''
+                    def ansibleHome = System.getenv('HOME') + '/ansible'
                     ansiblePlaybook(
-                            playbook: "${env.FEATURE_DIR}/playbook.yml",
-                            inventory: "${env.FEATURE_DIR}/inventory.ini",
-                            colorized: true,
-                            extras: "--vault-password-file ${env.VAULT_PASS} ${checkFlag}"
+                        playbook: "${env.FEATURE_DIR}/playbook.yml",
+                        inventory: ${env.INVENTORY},
+                        colorized: true,
+                        extras: """--vault-password-file ${env.VAULT_PASS} \
+                                   --roles-path ${ansibleHome}/roles \
+                                   ${checkFlag}"""
                     )
                 }
             }

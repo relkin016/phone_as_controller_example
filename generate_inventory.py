@@ -1,5 +1,7 @@
 # generate_inventory.py
-import re, os, subprocess, sys
+import os
+ansible_dir = os.path.join(os.environ['HOME'], 'ansible')
+inventory_path = os.path.join(ansible_dir, 'inventory.ini')
 
 vault_pass = None
 try:
