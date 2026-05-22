@@ -46,6 +46,8 @@ hosts = []
 for line in content.splitlines():
     ip_match = re.search(r'Host: (\d+\.\d+\.\d+\.\d+)', line)
     if ip_match and '22/open' in line:
+        if any(skip in line for skip in ['Cisco', 'IOS', 'Windows', 'RouterOS']):
+            continue
         ip = ip_match.group(1)
         if ip not in hosts:
             hosts.append(ip)
