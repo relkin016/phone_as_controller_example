@@ -100,28 +100,26 @@ pipeline {
         }
 
         stage('4. Copy SSH keys') {
-            steps {
-                sh '''
-                    ANSIBLE_HOME="$HOME/ansible"
-                    SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
-                        --vault-password-file ${VAULT_PASS} \
-                        | awk '/^ssh_pass:/{print $2}')
+     steps {
+         sh '''#!/bin/bash
+             SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
+                 --vault-password-file ${VAULT_PASS} \
+                 | awk '/^ssh_pass:/{print $2}')
 
-                    grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY" | while IFS= read -r ip; do
-                        [[ "$ip" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$ ]] || continue
-                        echo "  → $ip"
-                        sshpass -p "$SSH_PASS" \
-                            ssh-copy-id \
-                                -o StrictHostKeyChecking=no \
-                                -o IdentitiesOnly=yes \
-                                -i ~/.ssh/id_ed25519.pub \
-                                "${ANSIBLE_USER}@${ip}" \
-                        && echo "    ✓ ключ скопійовано" \
-                        || echo "    ✗ помилка"
-                    done
-                '''
-            }
-        }
+             grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY" | while IFS= read -r ip; do
+                 echo "  → $ip"
+                 sshpass -p "$SSH_PASS" \
+                     ssh-copy-id \
+                         -o StrictHostKeyChecking=no \
+                         -o IdentitiesOnly=yes \
+                         -i ~/.ssh/id_ed25519.pub \
+                         "${ANSIBLE_USER}@${ip}" \
+                 && echo "    ✓ ключ скопійовано" \
+                 || echo "    ✗ помилка"
+             done
+         '''
+     }
+ }
 
         stage('5. Deploy playbook') {
             steps {
