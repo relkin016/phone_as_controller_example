@@ -1,10 +1,8 @@
 # requirements.yml
 roles:
-  - name: devsec.os_hardening
-    src: https://github.com/dev-sec/ansible-os-hardening
-
-  - name: devsec.ssh_hardening
-    src: https://github.com/dev-sec/ansible-ssh-hardening
-
   - name: geerlingguy.security
     src: https://github.com/geerlingguy/ansible-role-security
+
+collections:
+  - name: devsec.hardening
+    source: https://galaxy.ansible.com

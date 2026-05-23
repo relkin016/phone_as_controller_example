@@ -1,6 +1,7 @@
 # Makefile
 
 ROLES_PATH   := $(HOME)/ansible/roles
+COLLECTIONS_PATH := $(HOME)/ansible/collections
 ROLE_PATH := $(shell pwd)/roles/devsec.ssh_hardening/templates/opensshd.conf.j2
 REQUIREMENTS := requirements.yml
 
@@ -16,6 +17,7 @@ SMEE_LOG      := $(HOME)/.jenkins/logs/smee.log
 install:
 	@echo "==> Встановлення Ansible ролей з Galaxy..."
 	ansible-galaxy install -r $(REQUIREMENTS) -p $(ROLES_PATH) --force
+	ansible-galaxy collection install -r $(REQUIREMENTS) -P $(COLLECTIONS_PATH) --force
 	@echo "==> Патч devsec.ssh_hardening для Jinja2 3.1.4+..."
 	sed -i 's/trim_blocks: "true"/trim_blocks: true/' "$(ROLE_PATH)"
 	sed -i 's/lstrip_blocks: "true"/lstrip_blocks: true/' "$(ROLE_PATH)"
