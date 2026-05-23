@@ -115,15 +115,12 @@ pipeline {
                     TOTAL=0
                     SUCCESS=0
                     TMPDIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}"
+                    INI_FILE="${TMPDIR}/successful_hosts.ini"
 
-                    echo "[scanned]" > "${TMPDIR}/successful_hosts.ini"
-                    echo "" >> "${TMPDIR}/successful_hosts.ini"
-                    echo "[scanned:vars]" >> "${TMPDIR}/successful_hosts.ini"
-                    echo "ansible_user=${ANSIBLE_USER}" >> "${TMPDIR}/successful_hosts.ini"
-                    echo 'ansible_ssh_common_args="-o StrictHostKeyChecking=no"' >> "${TMPDIR}/successful_hosts.ini"
-
-                    # Тимчасово перезаписуємо тільки хости
-                    echo "[scanned]" > "${TMPDIR}/successful_hosts.ini"
+                    # ✅ Записуємо заголовок ОДИН РАЗ — більше не перезаписуємо
+                    cat > "${INI_FILE}" <<EOF
+                    [scanned]
+                    EOF
 
                     while IFS= read -r ip; do
                         TOTAL=$((TOTAL + 1))
@@ -143,11 +140,11 @@ pipeline {
                         if echo "$OUTPUT" | grep -q "^OK"; then
                             echo "    ✓ Ключ вже є (захарднений хост)"
                             SUCCESS=$((SUCCESS + 1))
-                            echo "$ip" >> "${TMPDIR}/successful_hosts.ini"
+                            echo "$ip" >> "${INI_FILE}"
                             continue
                         fi
 
-                        # Якщо ключ не спрацював — пробуємо паролем і копіюємо ключ
+                        # Пробуємо паролем і копіюємо ключ
                         OUTPUT=$(sshpass -p "$SSH_PASS" ssh \
                             -o StrictHostKeyChecking=no \
                             -o IdentitiesOnly=yes \
@@ -165,12 +162,29 @@ pipeline {
                         if echo "$OUTPUT" | grep -q "^OK"; then
                             echo "    ✓ Ключ скопійовано"
                             SUCCESS=$((SUCCESS + 1))
-                            echo "$ip" >> "${TMPDIR}/successful_hosts.ini"
+                            echo "$ip" >> "${INI_FILE}"
                         else
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
 
-                    done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
+                    done < <(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY")
+
+                    # ✅ Vars-секція додається ПІСЛЯ списку хостів
+                    cat >> "${INI_FILE}" <<EOF
+
+                    [scanned:vars]
+                    ansible_user=${ANSIBLE_USER}
+                    ansible_ssh_private_key_file=~/.ssh/id_ed25519
+                    ansible_ssh_common_args="-o StrictHostKeyChecking=no"
+                    EOF
+
+                    echo ""
+                    echo "Результат: ${SUCCESS}/${TOTAL} хостів"
+                    echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
+
+                    # ✅ Виводимо фінальний inventory для діагностики
+                    echo "--- ${INI_FILE} ---"
+                    cat "${INI_FILE}"
                 '''
             }
         }
