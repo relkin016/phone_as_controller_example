@@ -119,7 +119,7 @@ pipeline {
                     echo "[scanned]" > "${TMPDIR}/successful_hosts.ini"
                     echo "" >> "${TMPDIR}/successful_hosts.ini"
                     echo "[scanned:vars]" >> "${TMPDIR}/successful_hosts.ini"
-                    echo 'ansible_user=relkin' >> "${TMPDIR}/successful_hosts.ini"
+                    echo "ansible_user=${ANSIBLE_USER}" >> "${TMPDIR}/successful_hosts.ini"
                     echo 'ansible_ssh_common_args="-o StrictHostKeyChecking=no"' >> "${TMPDIR}/successful_hosts.ini"
 
                     # Тимчасово перезаписуємо тільки хости
