@@ -139,11 +139,12 @@ pipeline {
 
                         done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
                     echo "Результат: $SUCCESS/$TOTAL"
+                    # замість echo "$SUCCESS" > ...
                     echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
                     > "${TMPDIR}/successful_hosts.ini"   # очистити/створити файл
 
                     echo "[all]" > "${TMPDIR}/successful_hosts.ini"
-                    
+
                     while IFS= read -r ip; do
                         # ... існуючий код копіювання ключа ...
                         if echo "$OUTPUT" | grep -q "^OK"; then
@@ -153,6 +154,7 @@ pipeline {
                         else
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
+                        done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
                 '''
             }
         }
@@ -161,14 +163,14 @@ pipeline {
             steps {
                 script {
                     def hostCount = sh(
-                        script: "cat ${env.TMPDIR}/success_count.txt 2>/dev/null || echo 1",
+                        script: 'cat "${TMPDIR}/success_count.txt" 2>/dev/null || echo 1',
                         returnStdout: true
-                    ).trim()
-                    echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
+                    ).trim().toInteger()
+                    echo "Успішно приєднано ${hostCount} вузлів."
                     def checkFlag = params.DRY_RUN ? '--check --diff' : ''
                     ansiblePlaybook(
                         playbook: "${env.FEATURE_DIR}/playbook.yml",
-                        inventory: env.INVENTORY,
+                        inventory: "${env.TMPDIR}/successful_hosts.ini",   // <-- новий inventory
                         colorized: true,
                         extras: "--vault-password-file ${env.VAULT_PASS} -f ${hostCount} ${checkFlag}"
                     )
@@ -180,7 +182,7 @@ pipeline {
     post {
         always {
             node('') {
-                sh 'rm -f "${TMPDIR}/nmap_scan.txt" "${TMPDIR}/success_count.txt" || true'
+            sh 'rm -f "${TMPDIR}/nmap_scan.txt" "${TMPDIR}/success_count.txt" "${TMPDIR}/successful_hosts.ini" || true'
             }
         }
         success {
