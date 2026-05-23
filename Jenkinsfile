@@ -127,11 +127,10 @@ pipeline {
                              "${ANSIBLE_USER}@${ip}" < /dev/null 2>&1)
 
                      # Тепер ми НЕ дивимось на Exit Code, ми шукаємо конкретні слова маркерів успіху
-                     if echo "$OUTPUT" | grep -qE "Number of key\(s\) added: [1-9]"; then
+                        if echo "$OUTPUT" | grep -q "Number of key(s) added: [1-9]"; then
                          echo "    ✓ Ключ успішно скопійовано"
                          SUCCESS_HOSTS=$((SUCCESS_HOSTS + 1))
-
-                     elif echo "$OUTPUT" | grep -qE "Number of key\(s\) added: 0"; then
+                        elif echo "$OUTPUT" | grep -q "Number of key(s) added: 0"; then
                          echo "    ✓ Ключ вже був присутній (пропущено)"
                          SUCCESS_HOSTS=$((SUCCESS_HOSTS + 1))
 
