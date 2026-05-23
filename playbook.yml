@@ -1,3 +1,4 @@
+#playbook.yml
 - name: "Перевірка з'єднання зі знайденими хостами"
   hosts: scanned
   gather_facts: no
@@ -42,6 +43,6 @@
     security_fail2ban_enabled: true
 
   roles:
-    - devsec.ssh_hardening
-    - devsec.os_hardening
+    - devsec.hardening.ssh_hardening
+    - devsec.hardening.os_hardening
     - geerlingguy.security
