@@ -46,11 +46,12 @@ pipeline {
         stage('1. Install requirements') {
             steps {
                 sh '''
-                    echo "=== Встановлення системних залежностей Termux ==="
                     pkg install -y nmap iproute2 sshpass
-                    echo "=== make install ==="
                     cd ${FEATURE_DIR}
                     make install
+                    if [ ! -f ~/.ssh/id_ed25519 ]; then
+                        ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+                    fi
                 '''
             }
         }
