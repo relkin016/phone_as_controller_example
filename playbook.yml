@@ -34,6 +34,7 @@
     ssh_max_auth_retries: 3
     ssh_client_alive_interval: 300
     ssh_client_alive_count_max: 2
+    ssh_hardening_os_vars_enabled: false
     os_desktop_enable: false
     os_security_kernel_enable_module_loading: true
     os_security_users_allow: []
@@ -42,6 +43,7 @@
     ufw_default_forward_policy: DROP
     security_autoupdate_enabled: true
     security_fail2ban_enabled: true
+
   roles:
     - devsec.hardening.ssh_hardening
     - devsec.hardening.os_hardening
