@@ -172,13 +172,21 @@ pipeline {
                         script: 'cat "${TMPDIR}/success_count.txt" 2>/dev/null || echo 1',
                         returnStdout: true
                     ).trim().toInteger()
+
+                    def becomePass = sh(
+                        script: """ansible-vault view ${env.VAULT_FILE} \
+                            --vault-password-file ${env.VAULT_PASS} \
+                            | awk '/^ssh_pass:/{print \$2}' | tr -d '\\r'""",
+                        returnStdout: true
+                    ).trim()
+
                     echo "Успішно приєднано ${hostCount} вузлів."
                     def checkFlag = params.DRY_RUN ? '--check --diff' : ''
                     ansiblePlaybook(
                         playbook: "${env.FEATURE_DIR}/playbook.yml",
-                        inventory: "${env.TMPDIR}/successful_hosts.ini",   // <-- новий inventory
+                        inventory: "${env.TMPDIR}/successful_hosts.ini",
                         colorized: true,
-                        extras: "--vault-password-file ${env.VAULT_PASS} -f ${hostCount} ${checkFlag}"
+                        extras: "--vault-password-file ${env.VAULT_PASS} -f ${hostCount} ${checkFlag} -e ansible_become_password=${becomePass}"
                     )
                 }
             }
