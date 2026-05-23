@@ -1,6 +1,10 @@
 # Makefile
 
-ROLES_PATH   := $(HOME)/ansible/roles
+ROLE_PATH := $(shell pwd)/roles/devsec.ssh_hardening/templates/opensshd.conf.j2
+
+patch-jinja:
+
+
 REQUIREMENTS := requirements.yml
 
 SMEE_URL      := https://smee.io/4d4G597DPLT9vOeR
@@ -16,10 +20,8 @@ install:
 	@echo "==> Встановлення Ansible ролей з Galaxy..."
 	ansible-galaxy install -r $(REQUIREMENTS) -p $(ROLES_PATH) --force
 	@echo "==> Патч devsec.ssh_hardening для Jinja2 3.1.4+..."
-	sed -i 's/#jinja2: trim_blocks: "true"/#jinja2: trim_blocks: true/' \
-		$(ROLES_PATH)/devsec.ssh_hardening/templates/opensshd.conf.j2
-	sed -i 's/lstrip_blocks: "true"/lstrip_blocks: true/' \
-		~/ansible/roles/devsec.ssh_hardening/templates/opensshd.conf.j2
+	sed -i 's/trim_blocks: "true"/trim_blocks: true/' "$(ROLE_PATH)"
+	sed -i 's/lstrip_blocks: "true"/lstrip_blocks: true/' "$(ROLE_PATH)"
 	#$(MAKE) smee-install
 
 # ── smee ──────────────────────────────────────────────────────────────────────

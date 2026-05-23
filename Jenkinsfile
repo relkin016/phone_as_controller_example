@@ -100,12 +100,12 @@ pipeline {
         }
 
         stage('4. Copy SSH keys') {
-     steps {
+        steps {
          sh '''#!/bin/bash
              SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
                  --vault-password-file ${VAULT_PASS} \
                  | awk '/^ssh_pass:/{print $2}')
-
+            echo "DEBUG: SSH_PASS length=${#SSH_PASS}"  # покаже довжину без самого пароля
              grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY" | while IFS= read -r ip; do
                  echo "  → $ip"
                  sshpass -p "$SSH_PASS" \
@@ -118,8 +118,8 @@ pipeline {
                  || echo "    ✗ помилка"
              done
          '''
-     }
- }
+        }
+    }
 
         stage('5. Deploy playbook') {
             steps {
