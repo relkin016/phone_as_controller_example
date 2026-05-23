@@ -112,7 +112,18 @@ pipeline {
                     fi
 
                     PUB_KEY=$(cat ~/.ssh/id_ed25519.pub)
-                    TOTAL=0; SUCCESS=0
+                    TOTAL=0
+                    SUCCESS=0
+                    TMPDIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}"
+
+                    echo "[scanned]" > "${TMPDIR}/successful_hosts.ini"
+                    echo "" >> "${TMPDIR}/successful_hosts.ini"
+                    echo "[scanned:vars]" >> "${TMPDIR}/successful_hosts.ini"
+                    echo 'ansible_user=relkin' >> "${TMPDIR}/successful_hosts.ini"
+                    echo 'ansible_ssh_common_args="-o StrictHostKeyChecking=no"' >> "${TMPDIR}/successful_hosts.ini"
+
+                    # Тимчасово перезаписуємо тільки хости
+                    echo "[scanned]" > "${TMPDIR}/successful_hosts.ini"
 
                     while IFS= read -r ip; do
                         TOTAL=$((TOTAL + 1))
@@ -123,38 +134,33 @@ pipeline {
                             -o IdentitiesOnly=yes \
                             -o PasswordAuthentication=yes \
                             -o PubkeyAuthentication=no \
+                            -o ConnectTimeout=5 \
                             "${ANSIBLE_USER}@${ip}" \
                             "mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
-                             grep -qF '${PUB_KEY}' ~/.ssh/authorized_keys 2>/dev/null || \
-                             echo '${PUB_KEY}' >> ~/.ssh/authorized_keys && \
+                             grep -qF '$(cat ~/.ssh/id_ed25519.pub)' ~/.ssh/authorized_keys 2>/dev/null || \
+                             echo '$(cat ~/.ssh/id_ed25519.pub)' >> ~/.ssh/authorized_keys && \
                              chmod 600 ~/.ssh/authorized_keys && echo OK" \
                             </dev/null 2>&1)
 
                         if echo "$OUTPUT" | grep -q "^OK"; then
                             echo "    ✓ Готово"
                             SUCCESS=$((SUCCESS + 1))
+                            echo "$ip" >> "${TMPDIR}/successful_hosts.ini"
                         else
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
+                    done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
 
-                        done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
-                    echo "Результат: $SUCCESS/$TOTAL"
-                    # замість echo "$SUCCESS" > ...
+                    # Додаємо vars секцію після хостів
+                    echo "" >> "${TMPDIR}/successful_hosts.ini"
+                    echo "[scanned:vars]" >> "${TMPDIR}/successful_hosts.ini"
+                    echo "ansible_user=${ANSIBLE_USER}" >> "${TMPDIR}/successful_hosts.ini"
+                    echo 'ansible_ssh_common_args="-o StrictHostKeyChecking=no"' >> "${TMPDIR}/successful_hosts.ini"
+
                     echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
-                    > "${TMPDIR}/successful_hosts.ini"   # очистити/створити файл
-
-                    echo "[scanned]" > "${TMPDIR}/successful_hosts.ini"
-
-                    while IFS= read -r ip; do
-                        # ... існуючий код копіювання ключа ...
-                        if echo "$OUTPUT" | grep -q "^OK"; then
-                            echo "    ✓ Готово"
-                            SUCCESS=$((SUCCESS + 1))
-                            echo "$ip" >> "${TMPDIR}/successful_hosts.ini"   # <-- додати лише успішні
-                        else
-                            echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
-                        fi
-                        done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
+                    echo "=========================================="
+                    echo "Результат: $SUCCESS/$TOTAL"
+                    [ "$SUCCESS" -gt 0 ] || exit 1
                 '''
             }
         }
