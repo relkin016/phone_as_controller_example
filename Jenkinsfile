@@ -164,7 +164,7 @@ pipeline {
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
 
-                    done < <(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY")
+                    done < <(grep -E '^[0-9]+\\[0-9]+\\[0-9]+\\[0-9]+' "$INVENTORY")
 
                     # ✅ Vars-секція без heredoc, KEY_PATH замість ~
                     printf "\n[scanned:vars]\n" >> "${INI_FILE}"
