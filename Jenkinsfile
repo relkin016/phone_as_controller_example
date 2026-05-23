@@ -100,26 +100,57 @@ pipeline {
         }
 
         stage('4. Copy SSH keys') {
-        steps {
-         sh '''#!/bin/bash
-             SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
-                 --vault-password-file ${VAULT_PASS} \
-                 | awk '/^ssh_pass:/{print $2}')
-            echo "DEBUG: SSH_PASS length=${#SSH_PASS}"  # покаже довжину без самого пароля
-             grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY" | while IFS= read -r ip; do
-                 echo "  → $ip"
-                 sshpass -p "$SSH_PASS" \
-                     ssh-copy-id \
-                         -o StrictHostKeyChecking=no \
-                         -o IdentitiesOnly=yes \
-                         -i ~/.ssh/id_ed25519.pub \
-                         "${ANSIBLE_USER}@${ip}" \
-                 && echo "    ✓ ключ скопійовано" \
-                 || echo "    ✗ помилка"
-             done
-         '''
+            steps {
+             sh '''#!/bin/bash
+                 # 1. Очищуємо пароль від можливих прихованих символів \\r
+                 SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
+                     --vault-password-file ${VAULT_PASS} \
+                     | awk '/^ssh_pass:/{print $2}' | tr -d '\\r')
+
+                 if [ -z "$SSH_PASS" ]; then
+                     echo "✗ Помилка: Пароль не знайдено або він порожній!"
+                     exit 1
+                 fi
+
+                 FAILED_HOSTS=0
+
+                 # 2. Використовуємо підстановку процесу < <(...), щоб змінні не губилися в subshell
+                 while IFS= read -r ip; do
+                     echo "  → Перевірка та копіювання на $ip..."
+
+                     # 3. Перенаправляємо stdin (< /dev/null) та перехоплюємо вивід
+                     OUTPUT=$(sshpass -p "$SSH_PASS" \
+                         ssh-copy-id \
+                             -o StrictHostKeyChecking=no \
+                             -o IdentitiesOnly=yes \
+                             -i ~/.ssh/id_ed25519.pub \
+                             "${ANSIBLE_USER}@${ip}" < /dev/null 2>&1)
+
+                     EXIT_CODE=$?
+
+                     # 4. Аналізуємо реальний результат
+                     if [ $EXIT_CODE -eq 0 ]; then
+                         if echo "$OUTPUT" | grep -q "Number of key(s) added: 0"; then
+                             echo "    ✓ Ключ вже присутній (пропущено)"
+                         else
+                             echo "    ✓ Ключ успішно скопійовано"
+                         fi
+                     else
+                         echo "    ✗ ПОМИЛКА підключення або копіювання!"
+                         echo "      Деталі: $OUTPUT"
+                         FAILED_HOSTS=$((FAILED_HOSTS + 1))
+                     fi
+                 done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
+
+                 # 5. Реальний фейл пайплайну, якщо були помилки
+                 if [ "$FAILED_HOSTS" -ne 0 ]; then
+                     echo "=========================================="
+                     echo "❌ Стейдж завершився з помилками на $FAILED_HOSTS вузлах!"
+                     exit 1
+                 fi
+             '''
+            }
         }
-    }
 
         stage('5. Deploy playbook') {
             steps {
