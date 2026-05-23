@@ -102,7 +102,6 @@ pipeline {
         stage('4. Copy SSH keys') {
             steps {
              sh '''#!/bin/bash
-                 # 1. Очищуємо пароль від можливих прихованих символів \\r
                  SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
                      --vault-password-file ${VAULT_PASS} \
                      | awk '/^ssh_pass:/{print $2}' | tr -d '\\r')
@@ -112,13 +111,14 @@ pipeline {
                      exit 1
                  fi
 
-                 FAILED_HOSTS=0
+                 TOTAL_HOSTS=0
+                 SUCCESS_HOSTS=0
 
-                 # 2. Використовуємо підстановку процесу < <(...), щоб змінні не губилися в subshell
                  while IFS= read -r ip; do
+                     TOTAL_HOSTS=$((TOTAL_HOSTS + 1))
                      echo "  → Перевірка та копіювання на $ip..."
 
-                     # 3. Перенаправляємо stdin (< /dev/null) та перехоплюємо вивід
+                     # Виконуємо команду і записуємо весь вивід (і помилки, і стандартний)
                      OUTPUT=$(sshpass -p "$SSH_PASS" \
                          ssh-copy-id \
                              -o StrictHostKeyChecking=no \
@@ -126,28 +126,40 @@ pipeline {
                              -i ~/.ssh/id_ed25519.pub \
                              "${ANSIBLE_USER}@${ip}" < /dev/null 2>&1)
 
-                     EXIT_CODE=$?
+                     # Тепер ми НЕ дивимось на Exit Code, ми шукаємо конкретні слова маркерів успіху
+                     if echo "$OUTPUT" | grep -qE "Number of key\(s\) added: [1-9]"; then
+                         echo "    ✓ Ключ успішно скопійовано"
+                         SUCCESS_HOSTS=$((SUCCESS_HOSTS + 1))
 
-                     # 4. Аналізуємо реальний результат
-                     if [ $EXIT_CODE -eq 0 ]; then
-                         if echo "$OUTPUT" | grep -q "Number of key(s) added: 0"; then
-                             echo "    ✓ Ключ вже присутній (пропущено)"
-                         else
-                             echo "    ✓ Ключ успішно скопійовано"
-                         fi
+                     elif echo "$OUTPUT" | grep -qE "Number of key\(s\) added: 0"; then
+                         echo "    ✓ Ключ вже був присутній (пропущено)"
+                         SUCCESS_HOSTS=$((SUCCESS_HOSTS + 1))
+
                      else
-                         echo "    ✗ ПОМИЛКА підключення або копіювання!"
-                         echo "      Деталі: $OUTPUT"
-                         FAILED_HOSTS=$((FAILED_HOSTS + 1))
+                         # Якщо рядка "Number of key(s) added" немає — це гарантовано провал
+                         echo "    ✗ ПОМИЛКА підключення на $ip!"
+                         # Виводимо тільки перші 3 рядки помилки, щоб не засмічувати лог Jenkins
+                         echo "$OUTPUT" | head -n 3 | while read -r line; do echo "      $line"; done
                      fi
+
                  done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
 
-                 # 5. Реальний фейл пайплайну, якщо були помилки
-                 if [ "$FAILED_HOSTS" -ne 0 ]; then
-                     echo "=========================================="
-                     echo "❌ Стейдж завершився з помилками на $FAILED_HOSTS вузлах!"
+                 echo "=========================================="
+                 echo "📊 Результат: Підключено $SUCCESS_HOSTS з $TOTAL_HOSTS вузлів."
+
+                 # Перевіряємо умови фейлу всього стейджу
+                 if [ "$TOTAL_HOSTS" -eq 0 ]; then
+                     echo "❌ Помилка: В інвентарі не знайдено жодної IP-адреси!"
                      exit 1
                  fi
+
+                 if [ "$SUCCESS_HOSTS" -eq 0 ]; then
+                     echo "❌ Помилка: Не вдалося достукатися до ЖОДНОГО сервера. Перериваємо пайплайн."
+                     exit 1
+                 fi
+
+                 # Якщо хоча б 1 хост успішний — йдемо далі
+                 exit 0
              '''
             }
         }
