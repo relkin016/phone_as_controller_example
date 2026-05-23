@@ -143,7 +143,7 @@ pipeline {
                     echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
                     > "${TMPDIR}/successful_hosts.ini"   # очистити/створити файл
 
-                    echo "[all]" > "${TMPDIR}/successful_hosts.ini"
+                    echo "[scanned]" > "${TMPDIR}/successful_hosts.ini"
 
                     while IFS= read -r ip; do
                         # ... існуючий код копіювання ключа ...
