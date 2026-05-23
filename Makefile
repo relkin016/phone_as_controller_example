@@ -18,11 +18,9 @@ install:
 	@echo "==> Патч devsec.ssh_hardening для Jinja2 3.1.4+..."
 	sed -i 's/#jinja2: trim_blocks: "true"/#jinja2: trim_blocks: true/' \
 		$(ROLES_PATH)/devsec.ssh_hardening/templates/opensshd.conf.j2
-	sed -i 's/#jinja2: lstrip_blocks: "true"/#jinja2: lstrip_blocks: true/' \
-		$(ROLES_PATH)/devsec.ssh_hardening/templates/opensshd.conf.j2
-	@echo "==> Встановлення smee-client..."
-	$(MAKE) smee-install
-	@echo "==> Готово."
+	sed -i 's/lstrip_blocks: "true"/lstrip_blocks: true/' \
+		~/ansible/roles/devsec.ssh_hardening/templates/opensshd.conf.j2
+	#$(MAKE) smee-install
 
 # ── smee ──────────────────────────────────────────────────────────────────────
 
