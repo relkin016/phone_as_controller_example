@@ -139,6 +139,7 @@ pipeline {
 
                         done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
                     echo "Результат: $SUCCESS/$TOTAL"
+                    echo "$SUCCESS" > "${env.TMPDIR}/success_count.txt"
                     [ "$SUCCESS" -gt 0 ] || exit 1
                 '''
             }
@@ -148,7 +149,7 @@ pipeline {
             steps {
                 script {
                     def hostCount = sh(
-                        script: "grep -c -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' ${env.INVENTORY} || echo 5",
+                        script: "cat ${env.TMPDIR}/success_count.txt 2>/dev/null || echo 1",
                         returnStdout: true
                     ).trim()
                     echo "Знайдено ${hostCount} вузлів. Запускаємо Ansible з ${hostCount} паралельними потоками."
@@ -162,12 +163,12 @@ pipeline {
                 }
             }
         }
-    } // Тепер блок stages закривається правильно тут
+    }
 
     post {
         always {
             node('') {
-                sh 'rm -f ${TMPDIR:-/tmp}/nmap_scan.txt || true'
+                sh 'rm -f "${TMPDIR}/nmap_scan.txt" "${TMPDIR}/success_count.txt" || true'
             }
         }
         success {
