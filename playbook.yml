@@ -27,15 +27,12 @@
   gather_facts: yes
 
   vars:
-    # ── devsec.ssh_hardening ──────────────────────────────────────────────────
     ssh_permit_root_login: "no"
     ssh_password_authentication: "no"
     ssh_port: [22]
     ssh_max_auth_retries: 3
     ssh_client_alive_interval: 300
     ssh_client_alive_count_max: 2
-
-    # ── devsec.os_hardening ───────────────────────────────────────────────────
     os_desktop_enable: false
     os_security_kernel_enable_module_loading: true
     os_security_users_allow: []
