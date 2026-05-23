@@ -123,7 +123,7 @@ pipeline {
                     cat "$INVENTORY"
                     echo "--- GREP RESULT ---"
                     # ✅ Витягуємо IP з будь-якого місця рядка (ansible_host=X або просто X)
-                    grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY" || echo "IP не знайдено!"
+                    grep -oE '[0-9]+\\[0-9]+\\[0-9]+\\[0-9]+' "$INVENTORY" || echo "IP не знайдено!"
                     echo "---"
 
                     printf "[scanned]\n" > "${INI_FILE}"
@@ -172,7 +172,7 @@ pipeline {
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
 
-                    done < <(grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY")
+                    done < <(grep -oE '[0-9]+\\[0-9]+\\[0-9]+\\[0-9]+' "$INVENTORY")
 
                     printf "\n[scanned:vars]\n" >> "${INI_FILE}"
                     printf "ansible_user=%s\n" "${ANSIBLE_USER}" >> "${INI_FILE}"
