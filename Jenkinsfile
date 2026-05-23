@@ -129,38 +129,48 @@ pipeline {
                         TOTAL=$((TOTAL + 1))
                         echo "  → $ip"
 
+                        # Спочатку пробуємо ключем (вже захардені хости)
+                        OUTPUT=$(ssh \
+                            -o StrictHostKeyChecking=no \
+                            -o PasswordAuthentication=no \
+                            -o PubkeyAuthentication=yes \
+                            -o ConnectTimeout=5 \
+                            -i ~/.ssh/id_ed25519 \
+                            "${ANSIBLE_USER}@${ip}" \
+                            "echo OK" \
+                            </dev/null 2>&1)
+
+                        if echo "$OUTPUT" | grep -q "^OK"; then
+                            echo "    ✓ Ключ вже є (захарднений хост)"
+                            SUCCESS=$((SUCCESS + 1))
+                            echo "$ip" >> "${TMPDIR}/successful_hosts.ini"
+                            continue
+                        fi
+
+                        # Якщо ключ не спрацював — пробуємо паролем і копіюємо ключ
                         OUTPUT=$(sshpass -p "$SSH_PASS" ssh \
                             -o StrictHostKeyChecking=no \
                             -o IdentitiesOnly=yes \
                             -o PasswordAuthentication=yes \
                             -o PubkeyAuthentication=no \
                             -o ConnectTimeout=5 \
+                            -o KexAlgorithms=+diffie-hellman-group1-sha1,diffie-hellman-group14-sha1 \
                             "${ANSIBLE_USER}@${ip}" \
                             "mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
-                             grep -qF '$(cat ~/.ssh/id_ed25519.pub)' ~/.ssh/authorized_keys 2>/dev/null || \
-                             echo '$(cat ~/.ssh/id_ed25519.pub)' >> ~/.ssh/authorized_keys && \
+                             grep -qF '${PUB_KEY}' ~/.ssh/authorized_keys 2>/dev/null || \
+                             echo '${PUB_KEY}' >> ~/.ssh/authorized_keys && \
                              chmod 600 ~/.ssh/authorized_keys && echo OK" \
                             </dev/null 2>&1)
 
                         if echo "$OUTPUT" | grep -q "^OK"; then
-                            echo "    ✓ Готово"
+                            echo "    ✓ Ключ скопійовано"
                             SUCCESS=$((SUCCESS + 1))
                             echo "$ip" >> "${TMPDIR}/successful_hosts.ini"
                         else
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
-                    done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
 
-                    # Додаємо vars секцію після хостів
-                    echo "" >> "${TMPDIR}/successful_hosts.ini"
-                    echo "[scanned:vars]" >> "${TMPDIR}/successful_hosts.ini"
-                    echo "ansible_user=${ANSIBLE_USER}" >> "${TMPDIR}/successful_hosts.ini"
-                    echo 'ansible_ssh_common_args="-o StrictHostKeyChecking=no"' >> "${TMPDIR}/successful_hosts.ini"
-
-                    echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
-                    echo "=========================================="
-                    echo "Результат: $SUCCESS/$TOTAL"
-                    [ "$SUCCESS" -gt 0 ] || exit 1
+                    done < <(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY")
                 '''
             }
         }
