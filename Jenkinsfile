@@ -167,7 +167,7 @@ pipeline {
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
 
-                    done < <(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY")
+                    done < <(grep -E '^[0-9]+\\[0-9]+\\[0-9]+\\[0-9]+' "$INVENTORY")
 
                     # ✅ Vars-секція додається ПІСЛЯ списку хостів
                     cat >> "${INI_FILE}" <<EOF
