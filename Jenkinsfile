@@ -102,9 +102,22 @@ pipeline {
         stage('4. Copy SSH keys') {
             steps {
                 sh '''#!/bin/bash
+                    # ✅ Діагностика змінної INVENTORY
+                    echo "INVENTORY='${INVENTORY}'"
+
+                    if [ -z "${INVENTORY}" ]; then
+                        echo "✗ Змінна INVENTORY не задана!"
+                        exit 1
+                    fi
+
+                    if [ ! -f "${INVENTORY}" ]; then
+                        echo "✗ Файл не існує: ${INVENTORY}"
+                        exit 1
+                    fi
+
                     SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
                         --vault-password-file ${VAULT_PASS} \
-                        | awk '/^ssh_pass:/{print $2}' | tr -d '\r')
+                        | awk '/^ssh_pass:/{print $2}' | tr -d '\\r')
 
                     if [ -z "$SSH_PASS" ]; then
                         echo "✗ Пароль не знайдено!"
@@ -118,20 +131,14 @@ pipeline {
                     INI_FILE="${TMPDIR}/successful_hosts.ini"
                     KEY_PATH="$HOME/.ssh/id_ed25519"
 
-                    # ✅ Діагностика inventory
-                    echo "--- INVENTORY ($INVENTORY) ---"
-                    cat "$INVENTORY"
-                    echo "--- GREP RESULT ---"
-                    # ✅ Витягуємо IP з будь-якого місця рядка (ansible_host=X або просто X)
-                    grep -oE '[0-9]+\\[0-9]+\\[0-9]+\\[0-9]+' "$INVENTORY" || echo "IP не знайдено!"
-                    echo "---"
+                    printf "[scanned]\\n" > "${INI_FILE}"
 
-                    printf "[scanned]\n" > "${INI_FILE}"
-
-                    # ✅ grep -oE витягує IP навіть якщо він не на початку рядка
+                    # ✅ tr -d '\\r' прибирає Windows-переноси
+                    # ✅ grep шукає рядки де ТІЛЬКИ IP (без ansible_ змінних)
                     while IFS= read -r ip; do
+                        [ -z "$ip" ] && continue
                         TOTAL=$((TOTAL + 1))
-                        echo "  → $ip"
+                        echo "  → [$ip]"
 
                         OUTPUT=$(ssh \
                             -o StrictHostKeyChecking=no \
@@ -172,21 +179,19 @@ pipeline {
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
 
-                    done < <(grep -oE '[0-9]+\\[0-9]+\\[0-9]+\\[0-9]+' "$INVENTORY")
+                    # ✅ Витягуємо тільки рядки що є чистим IP (не ansible_* змінні)
+                    done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+[[:space:]]*$' "${INVENTORY}" | tr -d '\\r')
 
-                    printf "\n[scanned:vars]\n" >> "${INI_FILE}"
-                    printf "ansible_user=%s\n" "${ANSIBLE_USER}" >> "${INI_FILE}"
-                    printf "ansible_ssh_private_key_file=%s\n" "${KEY_PATH}" >> "${INI_FILE}"
-                    printf "ansible_ssh_common_args=-o StrictHostKeyChecking=no\n" >> "${INI_FILE}"
+                    printf "\\n[scanned:vars]\\n" >> "${INI_FILE}"
+                    printf "ansible_user=%s\\n" "${ANSIBLE_USER}" >> "${INI_FILE}"
+                    printf "ansible_ssh_private_key_file=%s\\n" "${KEY_PATH}" >> "${INI_FILE}"
+                    printf "ansible_ssh_common_args=-o StrictHostKeyChecking=no\\n" >> "${INI_FILE}"
 
                     echo ""
                     echo "Результат: ${SUCCESS}/${TOTAL} хостів"
 
-                    # ✅ Forks мінімум 1, навіть якщо 0 хостів — щоб ansible не падав
                     FORKS=$SUCCESS
-                    if [ "$FORKS" -lt 1 ]; then
-                        FORKS=1
-                    fi
+                    [ "$FORKS" -lt 1 ] && FORKS=1
                     echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
                     echo "$FORKS"   > "${TMPDIR}/forks_count.txt"
 
