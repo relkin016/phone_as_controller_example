@@ -5,7 +5,7 @@ pipeline {
     triggers {
         GenericTrigger(
             genericVariables: [
-                [key: 'ANSIBLE_USER', value: '$.ansible_user', defaultValue: 'roman']
+                [key: 'ANSIBLE_USER', value: '$.ansible_user', defaultValue: 'admin']
             ],
             token: 'example',
             printContributedVariables: false,
@@ -27,12 +27,12 @@ pipeline {
     parameters {
         string(
             name: 'ANSIBLE_USER',
-            defaultValue: 'admin',
+            defaultValue: 'relkin',
             description: 'SSH користувач на цільових хостах'
         )
         string(
             name: 'SUBNET',
-            defaultValue: '',
+            defaultValue: '192.168.177.0/24',
             description: 'Підмережа для сканування (напр. 192.168.1.0/24). Порожньо = автовизначення'
         )
         booleanParam(
