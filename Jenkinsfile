@@ -139,8 +139,20 @@ pipeline {
 
                         done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
                     echo "Результат: $SUCCESS/$TOTAL"
-                    echo "$SUCCESS" > "${env.TMPDIR}/success_count.txt"
-                    [ "$SUCCESS" -gt 0 ] || exit 1
+                    echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
+                    > "${TMPDIR}/successful_hosts.ini"   # очистити/створити файл
+
+                    echo "[all]" > "${TMPDIR}/successful_hosts.ini"
+                    
+                    while IFS= read -r ip; do
+                        # ... існуючий код копіювання ключа ...
+                        if echo "$OUTPUT" | grep -q "^OK"; then
+                            echo "    ✓ Готово"
+                            SUCCESS=$((SUCCESS + 1))
+                            echo "$ip" >> "${TMPDIR}/successful_hosts.ini"   # <-- додати лише успішні
+                        else
+                            echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
+                        fi
                 '''
             }
         }
