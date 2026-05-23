@@ -2,6 +2,7 @@
 - name: "Перевірка з'єднання зі знайденими хостами"
   hosts: scanned
   gather_facts: no
+  become: no
   tasks:
     - name: "Пінгуємо хост"
       ping:
@@ -16,6 +17,7 @@
 - name: "Перевірка результатів пінгу"
   hosts: localhost
   gather_facts: no
+  become: no
   tasks:
     - name: "Зупиняємо пайплайн, якщо живих хостів 0"
       fail:
@@ -25,7 +27,6 @@
 - name: "Розгортання конфігурації на доступних хостах"
   hosts: online_hosts
   gather_facts: yes
-
   vars:
     ssh_permit_root_login: "no"
     ssh_password_authentication: "no"
