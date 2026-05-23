@@ -14,8 +14,8 @@ SMEE_LOG      := $(HOME)/.jenkins/logs/smee.log
 # ── Ansible ───────────────────────────────────────────────────────────────────
 
 install:
-	ansible-galaxy install -r $(REQUIREMENTS) -p $(ROLES_PATH) --force
-	ansible-galaxy collection install -r $(REQUIREMENTS) -p $(COLLECTIONS_PATH) --force
+	ansible-galaxy install -r $(REQUIREMENTS) -p $(ROLES_PATH)
+	ansible-galaxy collection install -r $(REQUIREMENTS) -p $(COLLECTIONS_PATH)
 	#$(MAKE) smee-install
 
 # ── smee ──────────────────────────────────────────────────────────────────────
