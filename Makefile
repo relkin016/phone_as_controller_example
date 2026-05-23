@@ -1,10 +1,7 @@
 # Makefile
 
+ROLES_PATH   := $(HOME)/ansible/roles
 ROLE_PATH := $(shell pwd)/roles/devsec.ssh_hardening/templates/opensshd.conf.j2
-
-patch-jinja:
-
-
 REQUIREMENTS := requirements.yml
 
 SMEE_URL      := https://smee.io/4d4G597DPLT9vOeR
