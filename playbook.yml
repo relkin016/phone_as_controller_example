@@ -41,7 +41,7 @@
     ufw_default_forward_policy: DROP
     security_autoupdate_enabled: true
     security_fail2ban_enabled: true
-
+    ansible_become_password: "{{ vault_ssh_pass }}"
   roles:
     - devsec.hardening.ssh_hardening
     - devsec.hardening.os_hardening
