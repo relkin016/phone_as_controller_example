@@ -116,35 +116,32 @@ pipeline {
                     SUCCESS=0
                     TMPDIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}"
                     INI_FILE="${TMPDIR}/successful_hosts.ini"
+                    KEY_PATH="$HOME/.ssh/id_ed25519"
 
-                    # ✅ Записуємо заголовок ОДИН РАЗ — більше не перезаписуємо
-                    cat > "${INI_FILE}" <<EOF
-                    [scanned]
-                    EOF
+                    # ✅ Без heredoc — просто echo
+                    printf "[scanned]\n" > "${INI_FILE}"
 
                     while IFS= read -r ip; do
                         TOTAL=$((TOTAL + 1))
                         echo "  → $ip"
 
-                        # Спочатку пробуємо ключем (вже захардені хости)
                         OUTPUT=$(ssh \
                             -o StrictHostKeyChecking=no \
                             -o PasswordAuthentication=no \
                             -o PubkeyAuthentication=yes \
                             -o ConnectTimeout=5 \
-                            -i ~/.ssh/id_ed25519 \
+                            -i "${KEY_PATH}" \
                             "${ANSIBLE_USER}@${ip}" \
                             "echo OK" \
                             </dev/null 2>&1)
 
                         if echo "$OUTPUT" | grep -q "^OK"; then
-                            echo "    ✓ Ключ вже є (захарднений хост)"
+                            echo "    ✓ Ключ вже є"
                             SUCCESS=$((SUCCESS + 1))
                             echo "$ip" >> "${INI_FILE}"
                             continue
                         fi
 
-                        # Пробуємо паролем і копіюємо ключ
                         OUTPUT=$(sshpass -p "$SSH_PASS" ssh \
                             -o StrictHostKeyChecking=no \
                             -o IdentitiesOnly=yes \
@@ -167,23 +164,19 @@ pipeline {
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
 
-                    done < <(grep -E '^[0-9]+\\[0-9]+\\[0-9]+\\[0-9]+' "$INVENTORY")
+                    done < <(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY")
 
-                    # ✅ Vars-секція додається ПІСЛЯ списку хостів
-                    cat >> "${INI_FILE}" <<EOF
-
-                    [scanned:vars]
-                    ansible_user=${ANSIBLE_USER}
-                    ansible_ssh_private_key_file=~/.ssh/id_ed25519
-                    ansible_ssh_common_args="-o StrictHostKeyChecking=no"
-                    EOF
+                    # ✅ Vars-секція без heredoc, KEY_PATH замість ~
+                    printf "\n[scanned:vars]\n" >> "${INI_FILE}"
+                    printf "ansible_user=%s\n" "${ANSIBLE_USER}" >> "${INI_FILE}"
+                    printf "ansible_ssh_private_key_file=%s\n" "${KEY_PATH}" >> "${INI_FILE}"
+                    printf "ansible_ssh_common_args=-o StrictHostKeyChecking=no\n" >> "${INI_FILE}"
 
                     echo ""
                     echo "Результат: ${SUCCESS}/${TOTAL} хостів"
                     echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
 
-                    # ✅ Виводимо фінальний inventory для діагностики
-                    echo "--- ${INI_FILE} ---"
+                    echo "--- Фінальний inventory ---"
                     cat "${INI_FILE}"
                 '''
             }
