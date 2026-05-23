@@ -118,9 +118,17 @@ pipeline {
                     INI_FILE="${TMPDIR}/successful_hosts.ini"
                     KEY_PATH="$HOME/.ssh/id_ed25519"
 
-                    # ✅ Без heredoc — просто echo
+                    # ✅ Діагностика inventory
+                    echo "--- INVENTORY ($INVENTORY) ---"
+                    cat "$INVENTORY"
+                    echo "--- GREP RESULT ---"
+                    # ✅ Витягуємо IP з будь-якого місця рядка (ansible_host=X або просто X)
+                    grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY" || echo "IP не знайдено!"
+                    echo "---"
+
                     printf "[scanned]\n" > "${INI_FILE}"
 
+                    # ✅ grep -oE витягує IP навіть якщо він не на початку рядка
                     while IFS= read -r ip; do
                         TOTAL=$((TOTAL + 1))
                         echo "  → $ip"
@@ -164,9 +172,8 @@ pipeline {
                             echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
                         fi
 
-                    done < <(grep -E '^[0-9]+\\[0-9]+\\[0-9]+\\[0-9]+' "$INVENTORY")
+                    done < <(grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY")
 
-                    # ✅ Vars-секція без heredoc, KEY_PATH замість ~
                     printf "\n[scanned:vars]\n" >> "${INI_FILE}"
                     printf "ansible_user=%s\n" "${ANSIBLE_USER}" >> "${INI_FILE}"
                     printf "ansible_ssh_private_key_file=%s\n" "${KEY_PATH}" >> "${INI_FILE}"
@@ -174,7 +181,14 @@ pipeline {
 
                     echo ""
                     echo "Результат: ${SUCCESS}/${TOTAL} хостів"
+
+                    # ✅ Forks мінімум 1, навіть якщо 0 хостів — щоб ansible не падав
+                    FORKS=$SUCCESS
+                    if [ "$FORKS" -lt 1 ]; then
+                        FORKS=1
+                    fi
                     echo "$SUCCESS" > "${TMPDIR}/success_count.txt"
+                    echo "$FORKS"   > "${TMPDIR}/forks_count.txt"
 
                     echo "--- Фінальний inventory ---"
                     cat "${INI_FILE}"
