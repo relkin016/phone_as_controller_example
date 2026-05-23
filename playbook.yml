@@ -29,6 +29,7 @@
   gather_facts: yes
   vars:
     ssh_permit_root_login: "no"
+    ansible_ssh_retries: 5
     ssh_password_authentication: "no"
     ssh_port: [22]
     ssh_max_auth_retries: 3
@@ -44,8 +45,50 @@
     ufw_default_forward_policy: DROP
     security_autoupdate_enabled: true
     security_fail2ban_enabled: true
+    ufw_rules:
+        - rule: allow
+          port: 22
+          proto: tcp
 
   roles:
     - devsec.hardening.ssh_hardening
     - devsec.hardening.os_hardening
     - geerlingguy.security
+    -
+  pre_tasks:
+      - name: "Зупиняємо fail2ban на час hardening"
+        service:
+            name: fail2ban
+            state: stopped
+        ignore_errors: yes
+        become: yes
+
+      - name: "Вмикаємо ssh.service явно"
+        systemd:
+            name: ssh.service
+            enabled: yes
+            state: started
+            daemon_reload: yes
+        become: yes
+        ignore_errors: yes
+
+  post_tasks:
+      # ✅ Чекаємо поки SSH повернеться після перезапуску
+      - name: "Чекаємо відновлення SSH після hardening"
+        wait_for:
+            host: "{{ inventory_hostname }}"
+            port: 22
+            delay: 5
+            timeout: 60
+            state: started
+        delegate_to: localhost
+        become: no
+
+      # ✅ Запускаємо fail2ban після hardening
+      - name: "Запускаємо fail2ban після hardening"
+        service:
+            name: fail2ban
+            state: started
+            enabled: yes
+        become: yes
+        ignore_errors: yes
