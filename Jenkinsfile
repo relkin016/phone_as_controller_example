@@ -185,25 +185,16 @@ pipeline {
         stage('5. Deploy playbook') {
             steps {
                 script {
-                    def hostCount = sh(
-                        script: 'cat "${TMPDIR}/success_count.txt" 2>/dev/null || echo 1',
-                        returnStdout: true
-                    ).trim().toInteger()
-
-                    def becomePass = sh(
-                        script: """ansible-vault view ${env.VAULT_FILE} \
-                            --vault-password-file ${env.VAULT_PASS} \
-                            | awk '/^ssh_pass:/{print \$2}' | tr -d '\\r'""",
-                        returnStdout: true
-                    ).trim()
-
-                    echo "Успішно приєднано ${hostCount} вузлів."
-                    def checkFlag = params.DRY_RUN ? '--check --diff' : ''
+                    def success = sh(script: "cat ${TMPDIR}/success_count.txt", returnStdout: true).trim().toInteger()
+                    def forks   = sh(script: "cat ${TMPDIR}/forks_count.txt",   returnStdout: true).trim().toInteger()
+                    echo "Успішно приєднано ${success} вузлів."
                     ansiblePlaybook(
-                        playbook: "${env.FEATURE_DIR}/playbook.yml",
-                        inventory: "${env.TMPDIR}/successful_hosts.ini",
-                        colorized: true,
-                        extras: "--vault-password-file ${env.VAULT_PASS} -f ${hostCount} ${checkFlag} -e ansible_become_password=${becomePass}"
+                        playbook: './playbook.yml',
+                        inventory: "${TMPDIR}/successful_hosts.ini",
+                        vaultCredentialsId: '',
+                        extraVars: [ansible_become_password: '1111'],
+                        forks: forks,   // ✅ завжди >= 1
+                        extras: "--vault-password-file ${VAULT_PASS}"
                     )
                 }
             }
