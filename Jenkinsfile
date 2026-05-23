@@ -101,65 +101,47 @@ pipeline {
 
         stage('4. Copy SSH keys') {
             steps {
-             sh '''#!/bin/bash
-                 SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
-                     --vault-password-file ${VAULT_PASS} \
-                     | awk '/^ssh_pass:/{print $2}' | tr -d '\\r')
+                sh '''#!/bin/bash
+                    SSH_PASS=$(ansible-vault view ${VAULT_FILE} \
+                        --vault-password-file ${VAULT_PASS} \
+                        | awk '/^ssh_pass:/{print $2}' | tr -d '\r')
 
-                 if [ -z "$SSH_PASS" ]; then
-                     echo "✗ Помилка: Пароль не знайдено або він порожній!"
-                     exit 1
-                 fi
+                    if [ -z "$SSH_PASS" ]; then
+                        echo "✗ Пароль не знайдено!"
+                        exit 1
+                    fi
 
-                 TOTAL_HOSTS=0
-                 SUCCESS_HOSTS=0
+                    PUB_KEY=$(cat ~/.ssh/id_ed25519.pub)
+                    TOTAL=0; SUCCESS=0
 
-                 while IFS= read -r ip; do
-                     TOTAL_HOSTS=$((TOTAL_HOSTS + 1))
-                     echo "  → Перевірка та копіювання на $ip..."
+                    while IFS= read -r ip; do
+                        TOTAL=$((TOTAL + 1))
+                        echo "  → $ip"
 
-                     # Виконуємо команду і записуємо весь вивід (і помилки, і стандартний)
-                     OUTPUT=$(sshpass -p "$SSH_PASS" \
-                         ssh-copy-id \
-                             -o StrictHostKeyChecking=no \
-                             -o IdentitiesOnly=yes \
-                             -i ~/.ssh/id_ed25519.pub \
-                             "${ANSIBLE_USER}@${ip}" < /dev/null 2>&1)
+                        OUTPUT=$(sshpass -p "$SSH_PASS" ssh \
+                            -o StrictHostKeyChecking=no \
+                            -o IdentitiesOnly=yes \
+                            -o PasswordAuthentication=yes \
+                            -o PubkeyAuthentication=no \
+                            "${ANSIBLE_USER}@${ip}" \
+                            "mkdir -p ~/.ssh && chmod 700 ~/.ssh && \
+                             grep -qF '${PUB_KEY}' ~/.ssh/authorized_keys 2>/dev/null || \
+                             echo '${PUB_KEY}' >> ~/.ssh/authorized_keys && \
+                             chmod 600 ~/.ssh/authorized_keys && echo OK" \
+                            </dev/null 2>&1)
 
-                     # Тепер ми НЕ дивимось на Exit Code, ми шукаємо конкретні слова маркерів успіху
-                        if echo "$OUTPUT" | grep -q "Number of key(s) added: [1-9]"; then
-                         echo "    ✓ Ключ успішно скопійовано"
-                         SUCCESS_HOSTS=$((SUCCESS_HOSTS + 1))
-                        elif echo "$OUTPUT" | grep -q "Number of key(s) added: 0"; then
-                         echo "    ✓ Ключ вже був присутній (пропущено)"
-                         SUCCESS_HOSTS=$((SUCCESS_HOSTS + 1))
+                        if echo "$OUTPUT" | grep -q "^OK"; then
+                            echo "    ✓ Готово"
+                            SUCCESS=$((SUCCESS + 1))
+                        else
+                            echo "    ✗ Помилка: $(echo "$OUTPUT" | head -2)"
+                        fi
 
-                     else
-                         # Якщо рядка "Number of key(s) added" немає — це гарантовано провал
-                         echo "    ✗ ПОМИЛКА підключення на $ip!"
-                         # Виводимо тільки перші 3 рядки помилки, щоб не засмічувати лог Jenkins
-                         echo "$OUTPUT" | head -n 3 | while read -r line; do echo "      $line"; done
-                     fi
+                    done < <(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' "$INVENTORY")
 
-                 done < <(grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' "$INVENTORY")
-
-                 echo "=========================================="
-                 echo "📊 Результат: Підключено $SUCCESS_HOSTS з $TOTAL_HOSTS вузлів."
-
-                 # Перевіряємо умови фейлу всього стейджу
-                 if [ "$TOTAL_HOSTS" -eq 0 ]; then
-                     echo "❌ Помилка: В інвентарі не знайдено жодної IP-адреси!"
-                     exit 1
-                 fi
-
-                 if [ "$SUCCESS_HOSTS" -eq 0 ]; then
-                     echo "❌ Помилка: Не вдалося достукатися до ЖОДНОГО сервера. Перериваємо пайплайн."
-                     exit 1
-                 fi
-
-                 # Якщо хоча б 1 хост успішний — йдемо далі
-                 exit 0
-             '''
+                    echo "Результат: $SUCCESS/$TOTAL"
+                    [ "$SUCCESS" -gt 0 ] || exit 1
+                '''
             }
         }
 
