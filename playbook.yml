@@ -54,23 +54,48 @@
     - devsec.hardening.ssh_hardening
     - devsec.hardening.os_hardening
     - geerlingguy.security
-    -
-  pre_tasks:
-      - name: "Зупиняємо fail2ban на час hardening"
-        service:
-            name: fail2ban
-            state: stopped
-        ignore_errors: yes
-        become: yes
 
-      - name: "Вмикаємо ssh.service явно"
-        systemd:
-            name: ssh.service
-            enabled: yes
-            state: started
-            daemon_reload: yes
-        become: yes
-        ignore_errors: yes
+  pre_tasks:
+    - name: "Зупиняємо fail2ban на час hardening"
+      service:
+        name: fail2ban
+        state: stopped
+      ignore_errors: yes
+      become: yes
+
+    - name: "Розмаскуємо ssh.socket і ssh.service"
+      command: systemctl unmask {{ item }}
+      loop:
+        - ssh.socket
+        - ssh.service
+      become: yes
+      ignore_errors: yes
+
+    # ✅ Вимикаємо socket-активацію
+    - name: "Вимикаємо ssh.socket"
+      systemd:
+        name: ssh.socket
+        enabled: no
+        state: stopped
+      become: yes
+      ignore_errors: yes
+
+    # ✅ Запускаємо класичний ssh.service
+    - name: "Вмикаємо ssh.service"
+      systemd:
+        name: ssh.service
+        enabled: yes
+        state: started
+        daemon_reload: yes
+      become: yes
+
+    - name: "UFW allow SSH перед hardening"
+      ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+      become: yes
+      ignore_errors: yes
 
   post_tasks:
       # ✅ Чекаємо поки SSH повернеться після перезапуску
