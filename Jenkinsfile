@@ -36,7 +36,7 @@ pipeline {
         )
         string(
             name: 'SUBNET',
-            defaultValue: '192.168.177.0/24',
+            defaultValue: '',
             description: 'Підмережа для сканування (напр. 192.168.1.0/24). Порожньо = автовизначення'
         )
         booleanParam(
