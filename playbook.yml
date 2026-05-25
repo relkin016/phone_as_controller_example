@@ -100,7 +100,7 @@
   post_tasks:
       # ✅ Чекаємо поки SSH повернеться після перезапуску
       - name: "Чекаємо відновлення SSH після hardening"
-        wait_for:
+        wait_for_connection:
             host: "{{ inventory_hostname }}"
             port: 22
             delay: 5
