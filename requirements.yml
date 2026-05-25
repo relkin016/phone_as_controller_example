@@ -1,0 +1,8 @@
+# requirements.yml
+roles:
+  - name: geerlingguy.security
+    src: https://github.com/geerlingguy/ansible-role-security
+
+collections:
+  - name: devsec.hardening
+    source: https://galaxy.ansible.com
