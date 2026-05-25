@@ -1,4 +1,3 @@
-#playbook.yml
 - name: "Перевірка з'єднання зі знайденими хостами"
   hosts: scanned
   gather_facts: no
@@ -28,15 +27,13 @@
   hosts: online_hosts
   gather_facts: yes
   vars:
-    ssh_permit_root_login: "no"
     ansible_ssh_retries: 5
     ssh_password_authentication: "no"
+    ssh_permit_root_login: "no"
     ssh_port: [22]
     ssh_max_auth_retries: 3
     ssh_client_alive_interval: 300
     ssh_client_alive_count_max: 2
-    ssh_hardening_os_vars_enabled: false
-    ssh_allow_users: "{{ ansible_user }}"
     os_desktop_enable: false
     os_security_kernel_enable_module_loading: true
     os_security_users_allow: []
@@ -46,14 +43,9 @@
     security_autoupdate_enabled: true
     security_fail2ban_enabled: true
     ufw_rules:
-        - rule: allow
-          port: 22
-          proto: tcp
-
-  roles:
-    - devsec.hardening.ssh_hardening
-    - devsec.hardening.os_hardening
-    - geerlingguy.security
+      - rule: allow
+        port: "22"
+        proto: tcp
 
   pre_tasks:
     - name: "Зупиняємо fail2ban на час hardening"
@@ -71,7 +63,6 @@
       become: yes
       ignore_errors: yes
 
-    # ✅ Вимикаємо socket-активацію
     - name: "Вимикаємо ssh.socket"
       systemd:
         name: ssh.socket
@@ -80,7 +71,6 @@
       become: yes
       ignore_errors: yes
 
-    # ✅ Запускаємо класичний ssh.service
     - name: "Вмикаємо ssh.service"
       systemd:
         name: ssh.service
@@ -97,23 +87,21 @@
       become: yes
       ignore_errors: yes
 
-  post_tasks:
-      # ✅ Чекаємо поки SSH повернеться після перезапуску
-      - name: "Чекаємо відновлення SSH після hardening"
-        wait_for_connection:
-            host: "{{ inventory_hostname }}"
-            port: 22
-            delay: 5
-            timeout: 60
-            state: started
-        delegate_to: localhost
-        become: no
+  roles:
+    - devsec.hardening.os_hardening
+    - geerlingguy.security
 
-      # ✅ Запускаємо fail2ban після hardening
-      - name: "Запускаємо fail2ban після hardening"
-        service:
-            name: fail2ban
-            state: started
-            enabled: yes
-        become: yes
-        ignore_errors: yes
+  post_tasks:
+    - name: "Чекаємо відновлення SSH після hardening"
+      wait_for_connection:
+        delay: 5
+        timeout: 90
+      become: no
+
+    - name: "Запускаємо fail2ban після hardening"
+      service:
+        name: fail2ban
+        state: started
+        enabled: yes
+      become: yes
+      ignore_errors: yes
