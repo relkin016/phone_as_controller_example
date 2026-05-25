@@ -1,6 +1,10 @@
 // Jenkinsfile
 pipeline {
     agent any
+        options {
+            skipDefaultCheckout(true)  // ✅ вимикаємо автоматичний checkout
+        }
+
 
     triggers {
         GenericTrigger(
@@ -43,6 +47,27 @@ pipeline {
     }
 
     stages {
+        stage('0. Check connectivity') {
+            steps {
+                script {
+                    def hasInternet = sh(
+                        script: 'curl -sf --max-time 5 https://github.com > /dev/null 2>&1 && echo yes || echo no',
+                        returnStdout: true
+                    ).trim()
+
+                    if (hasInternet == 'yes') {
+                        echo "Інтернет є — оновлюємо код з GitHub"
+                        checkout scm
+                    } else {
+                        echo "Інтернету немає — використовуємо локальний workspace"
+                        // ✅ Якщо workspace порожній — падаємо з зрозумілою помилкою
+                        if (!fileExists('playbook.yml')) {
+                            error("Workspace порожній і інтернету немає — неможливо продовжити")
+                        }
+                    }
+                }
+            }
+        }
         stage('1. Install requirements') {
             steps {
                 sh '''
