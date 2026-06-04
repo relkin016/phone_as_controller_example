@@ -42,6 +42,7 @@
     ufw_default_forward_policy: DROP
     security_autoupdate_enabled: true
     security_fail2ban_enabled: true
+    security_ssh_restart_handler_state: stopped
     ufw_rules:
       - rule: allow
         port: "22"
@@ -92,6 +93,15 @@
     - geerlingguy.security
 
   post_tasks:
+    - name: "Перезапускаємо ssh.service після hardening"
+      systemd:
+        name: ssh.service
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+      become: yes
+      ignore_errors: yes
+
     - name: "Чекаємо відновлення SSH після hardening"
       wait_for_connection:
         delay: 5
