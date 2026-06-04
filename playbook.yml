@@ -1,4 +1,31 @@
-# Play 1: тільки OS hardening (sysctl, kernel, filesystem)
+# Play 1: Пінг і формування групи online_hosts
+- name: "Перевірка з'єднання зі знайденими хостами"
+  hosts: scanned
+  gather_facts: no
+  become: no
+  tasks:
+    - name: "Пінгуємо хост"
+      ping:
+      ignore_unreachable: yes
+      register: host_ping
+
+    - name: "Додаємо хост до групи якщо відповів"
+      group_by:
+        key: "online_hosts"
+      when: host_ping.unreachable is not defined
+
+# Play 2: Зупинка якщо живих хостів 0
+- name: "Перевірка результатів пінгу"
+  hosts: localhost
+  gather_facts: no
+  become: no
+  tasks:
+    - name: "Зупиняємо пайплайн якщо живих хостів 0"
+      fail:
+        msg: "КРИТИЧНА ПОМИЛКА: Жоден з хостів не відповів по SSH!"
+      when: groups['online_hosts'] | default([]) | length == 0
+
+# Play 3: тільки OS hardening (sysctl, kernel, filesystem)
 - name: "OS Hardening"
   hosts: online_hosts
   gather_facts: yes
@@ -22,12 +49,12 @@
       become: yes
   roles:
     - devsec.hardening.os_hardening
-  # Handlers цього play відстрілюють — SSH не чіпали, все чисто
 
-# Play 2: тільки SSH + fail2ban (geerlingguy.security)
+# Play 4: тільки SSH + fail2ban
 - name: "SSH та Fail2ban hardening"
   hosts: online_hosts
   gather_facts: yes
+  ignore_unreachable: yes
   vars:
     ssh_password_authentication: "no"
     ssh_permit_root_login: "no"
@@ -36,7 +63,7 @@
     ssh_client_alive_interval: 300
     ssh_client_alive_count_max: 2
     security_autoupdate_enabled: true
-    security_fail2ban_enabled: false   # керуємо вручну нижче
+    security_fail2ban_enabled: false
     security_ssh_restart_handler_state: stopped
   pre_tasks:
     - name: "Зупиняємо fail2ban на час hardening"
@@ -46,25 +73,32 @@
       ignore_errors: yes
       become: yes
 
-    - name: "Розмаскуємо і перемикаємо ssh.socket → ssh.service"
-      block:
-        - command: systemctl unmask {{ item }}
-          loop: [ssh.socket, ssh.service]
-        - systemd:
-            name: ssh.socket
-            enabled: no
-            state: stopped
-        - systemd:
-            name: ssh.service
-            enabled: yes
-            state: started
-            daemon_reload: yes
+    - name: "Розмаскуємо ssh.socket і ssh.service"
+      command: systemctl unmask {{ item }}
+      loop:
+        - ssh.socket
+        - ssh.service
       become: yes
       ignore_errors: yes
 
+    - name: "Вимикаємо ssh.socket"
+      systemd:
+        name: ssh.socket
+        enabled: no
+        state: stopped
+      become: yes
+      ignore_errors: yes
+
+    - name: "Вмикаємо ssh.service"
+      systemd:
+        name: ssh.service
+        enabled: yes
+        state: started
+        daemon_reload: yes
+      become: yes
+
   roles:
     - geerlingguy.security
-  # Handler: SSH зупиняється (stopped), fail2ban handler не тригериться
 
   post_tasks:
     - name: "Рестарт SSH після hardening"
@@ -88,17 +122,19 @@
         enabled: yes
       become: yes
 
-# Play 3: перевірка
+# Play 5: Перевірка результату
 - name: "Перевірка результату"
   hosts: online_hosts
   gather_facts: no
   tasks:
     - name: "SSH доступний"
       ping:
-    - name: "fail2ban активний"
+
+    - name: "Статус fail2ban"
       systemd:
         name: fail2ban
       register: f2b
       become: yes
+
     - debug:
         msg: "fail2ban: {{ f2b.status.ActiveState }}"
