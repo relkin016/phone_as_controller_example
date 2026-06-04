@@ -2,7 +2,7 @@
 pipeline {
     agent any
         options {
-            skipDefaultCheckout(true)  // ✅ вимикаємо автоматичний checkout
+            skipDefaultCheckout(true)
         }
 
 
@@ -60,7 +60,6 @@ pipeline {
                         checkout scm
                     } else {
                         echo "Інтернету немає — використовуємо локальний workspace"
-                        // ✅ Якщо workspace порожній — падаємо з зрозумілою помилкою
                         if (!fileExists('playbook.yml')) {
                             error("Workspace порожній і інтернету немає — неможливо оновити")
                         }

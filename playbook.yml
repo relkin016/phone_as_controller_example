@@ -21,7 +21,7 @@
     - name: "Зупиняємо пайплайн, якщо живих хостів 0"
       fail:
         msg: "КРИТИЧНА ПОМИЛКА: Жоден з хостів не відповів по SSH!"
-      when: groups.get('online_hosts', []) | length == 0
+      when: groups['online_hosts'] | default([]) | length == 0
 
 - name: "Розгортання конфігурації на доступних хостах"
   hosts: online_hosts
