@@ -17,7 +17,18 @@ install:
 	ansible-galaxy install -r $(REQUIREMENTS) -p $(ROLES_PATH)
 	ansible-galaxy collection install -r $(REQUIREMENTS) -p $(COLLECTIONS_PATH)
 	#$(MAKE) smee-install
+	$(MAKE) patch-roles
 
+patch-roles:
+	@echo "==> Патчимо geerlingguy.security: ssh state started + ignore_errors..."
+	@sed -i \
+		's/state: "{{ security_sshd_state }}"/state: started/' \
+		$(ROLES_PATH)/geerlingguy.security/tasks/ssh.yml
+	@grep -q 'ignore_errors: yes' $(ROLES_PATH)/geerlingguy.security/tasks/ssh.yml || \
+		sed -i \
+		'/name: Ensure SSH daemon is running/{n;n;n;a\  ignore_errors: yes}' \
+		$(ROLES_PATH)/geerlingguy.security/tasks/ssh.yml
+	@echo "==> Патч застосовано."
 # ── smee ──────────────────────────────────────────────────────────────────────
 
 smee-install:
