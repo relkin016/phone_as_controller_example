@@ -119,7 +119,7 @@ pipeline {
 
         stage('3. Generate inventory') {
             steps {
-                sh 'python3 ${FEATURE_DIR}/generate_inventory.py'
+                sh 'python3 ${FEATURE_DIR}/scripts/generate_inventory.py'
                 sh "grep -v 'pass' ${env.HOME}/ansible/inventory.ini"
             }
         }
