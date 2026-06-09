@@ -55,17 +55,6 @@
   hosts: online_hosts
   gather_facts: yes
   ignore_unreachable: yes
-  vars:
-    ssh_password_authentication: "no"
-    ssh_permit_root_login: "no"
-    ssh_port: [22]
-    ssh_max_auth_retries: 3
-    ssh_client_alive_interval: 300
-    ssh_client_alive_count_max: 2
-    security_autoupdate_enabled: true
-    security_fail2ban_enabled: true
-    security_ssh_restart_handler_state: stopped
-
   pre_tasks:
     - name: "Зупинити unattended-upgrades"
       service:
@@ -73,6 +62,13 @@
         state: stopped
       become: yes
       ignore_errors: yes
+
+    - name: "Прибрати застарілий параметр ChallengeResponseAuthentication"
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^ChallengeResponseAuthentication'
+        state: absent
+      become: yes
 
     - name: "Дочекатись звільнення dpkg lock"
       shell: |
@@ -105,6 +101,16 @@
         state: started
         daemon_reload: yes
       become: yes
+
+  vars:
+    security_ssh_extra_config: |
+      KbdInteractiveAuthentication no
+    ssh_permit_root_login: "no"
+    ssh_max_auth_retries: 3
+    ssh_client_alive_interval: 300
+    ssh_client_alive_count_max: 2
+    security_autoupdate_enabled: true
+    security_fail2ban_enabled: true
 
   roles:
     - geerlingguy.security
