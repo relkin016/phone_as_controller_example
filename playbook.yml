@@ -87,13 +87,22 @@
       become: yes
       ignore_errors: yes
 
-    - name: "Вимикаємо ssh.socket"
-      systemd:
-        name: ssh.socket
-        enabled: no
-        state: stopped
+    - name: "Вбити залишкові процеси sshd"
+      shell: pkill -x sshd || true
       become: yes
-      ignore_errors: yes
+      changed_when: false
+
+    - name: "Пауза після pkill"
+      pause:
+        seconds: 2
+
+    - name: "Вмикаємо ssh.service"
+      systemd:
+        name: ssh.service
+        enabled: yes
+        state: restarted
+        daemon_reload: yes
+      become: yes
 
   vars:
     security_ssh_extra_config: |
