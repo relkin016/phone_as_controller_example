@@ -20,15 +20,9 @@ install:
 	$(MAKE) patch-roles
 
 patch-roles:
-	@echo "==> Патчимо geerlingguy.security: ssh state started + ignore_errors..."
-	@sed -i \
-		's/state: "{{ security_sshd_state }}"/state: started/' \
-		$(ROLES_PATH)/geerlingguy.security/tasks/ssh.yml
-	@grep -q 'ignore_errors: yes' $(ROLES_PATH)/geerlingguy.security/tasks/ssh.yml || \
-		sed -i \
-		'/name: Ensure SSH daemon is running/{n;n;n;a\  ignore_errors: yes}' \
-		$(ROLES_PATH)/geerlingguy.security/tasks/ssh.yml
-	@echo "==> Патч застосовано."
+	@echo "==> Патчимо geerlingguy.security..."
+	@ROLES_PATH=$(ROLES_PATH) python3 scripts/patch_roles.py
+
 # ── smee ──────────────────────────────────────────────────────────────────────
 
 smee-install:
