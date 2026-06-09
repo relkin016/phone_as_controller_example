@@ -16,6 +16,9 @@ new = ('- name: Ensure SSH daemon is running.\n'
 
 if old in t:
     f.write_text(t.replace(old, new))
-    print("Виправлено.")
+    print("Патч застосовано.")
+elif 'ignore_errors: yes' in t:
+    print("Вже пропатчено.")
 else:
     print("Не знайдено, перевір файл вручну.")
+    sys.exit(1)
