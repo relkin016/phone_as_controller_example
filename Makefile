@@ -21,7 +21,7 @@ install:
 
 patch-roles:
 	@echo "==> Патчимо geerlingguy.security..."
-	@ROLES_PATH=$(ROLES_PATH) python3 scripts/patch_roles.py
+	@ROLES_PATH=$(ROLES_PATH) python3 scripts/patch_role.py
 
 # ── smee ──────────────────────────────────────────────────────────────────────
 
