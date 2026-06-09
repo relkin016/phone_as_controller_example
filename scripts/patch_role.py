@@ -1,17 +1,13 @@
-import pathlib, os, sys
+import pathlib
 
-roles_path = os.environ.get('ROLES_PATH', os.path.expanduser('~/ansible/roles'))
-f = pathlib.Path(roles_path) / 'geerlingguy.security/tasks/ssh.yml'
-
-if not f.exists():
-    print(f"Файл не знайдено: {f}")
-    sys.exit(1)
-
+f = pathlib.Path('/data/data/com.termux/files/home/ansible/roles/geerlingguy.security/tasks/ssh.yml')
 t = f.read_text()
+
 old = ('- name: Ensure SSH daemon is running.\n'
        '  service:\n'
        '    name: "{{ security_sshd_name }}"\n'
-       '    state: "{{ security_sshd_state }}"')
+       '    state: started\n'
+       '    ignore_errors: yes')
 new = ('- name: Ensure SSH daemon is running.\n'
        '  service:\n'
        '    name: "{{ security_sshd_name }}"\n'
@@ -20,6 +16,6 @@ new = ('- name: Ensure SSH daemon is running.\n'
 
 if old in t:
     f.write_text(t.replace(old, new))
-    print("Патч застосовано.")
+    print("Виправлено.")
 else:
-    print("Вже пропатчено або структура змінилась.")
+    print("Не знайдено, перевір файл вручну.")
