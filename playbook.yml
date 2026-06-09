@@ -65,13 +65,22 @@
     security_autoupdate_enabled: true
     security_fail2ban_enabled: true
     security_ssh_restart_handler_state: stopped
+
   pre_tasks:
-    - name: "Зупиняємо fail2ban на час hardening"
+    - name: "Зупинити unattended-upgrades"
       service:
-        name: fail2ban
+        name: unattended-upgrades
         state: stopped
-      ignore_errors: yes
       become: yes
+      ignore_errors: yes
+
+    - name: "Дочекатись звільнення dpkg lock"
+      shell: |
+        while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+          sleep 3
+        done
+      become: yes
+      changed_when: false
 
     - name: "Розмаскуємо ssh.socket і ssh.service"
       command: systemctl unmask {{ item }}
