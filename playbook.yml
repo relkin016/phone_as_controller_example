@@ -63,7 +63,7 @@
     ssh_client_alive_interval: 300
     ssh_client_alive_count_max: 2
     security_autoupdate_enabled: true
-    security_fail2ban_enabled: false
+    security_fail2ban_enabled: true
     security_ssh_restart_handler_state: stopped
   pre_tasks:
     - name: "Зупиняємо fail2ban на час hardening"
