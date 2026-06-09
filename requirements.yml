@@ -1,8 +1,7 @@
 # requirements.yml
 roles:
-  - name: geerlingguy.security
-    src: https://github.com/geerlingguy/ansible-role-security
+  - name: geerlingguy.nginx
+    src: https://github.com/geerlingguy/ansible-role-nginx
 
 collections:
-  - name: devsec.hardening
-    source: https://galaxy.ansible.com
+  - name: community.general

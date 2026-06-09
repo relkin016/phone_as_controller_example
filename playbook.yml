@@ -25,116 +25,40 @@
         msg: "КРИТИЧНА ПОМИЛКА: Жоден з хостів не відповів по SSH!"
       when: groups['online_hosts'] | default([]) | length == 0
 
-# Play 3: тільки OS hardening (sysctl, kernel, filesystem)
-- name: "OS Hardening"
+- name: "Nginx demonstration"
   hosts: online_hosts
   gather_facts: yes
-  vars:
-    os_desktop_enable: false
-    os_security_kernel_enable_module_loading: true
-    os_security_users_allow: []
-    ufw_default_input_policy: DROP
-    ufw_default_output_policy: ACCEPT
-    ufw_default_forward_policy: DROP
-    ufw_rules:
-      - rule: allow
-        port: "22"
-        proto: tcp
-  pre_tasks:
-    - name: "UFW allow SSH перед hardening"
-      ufw:
-        rule: allow
-        port: "22"
-        proto: tcp
-      become: yes
   roles:
-    - devsec.hardening.os_hardening
-
-# Play 4: тільки SSH + fail2ban
-- name: "SSH та Fail2ban hardening"
-  hosts: online_hosts
-  gather_facts: yes
-  ignore_unreachable: yes
-  vars:
-    ssh_password_authentication: "no"
-    ssh_permit_root_login: "no"
-    ssh_port: [22]
-    ssh_max_auth_retries: 3
-    ssh_client_alive_interval: 300
-    ssh_client_alive_count_max: 2
-    security_autoupdate_enabled: true
-    security_fail2ban_enabled: true
-    security_ssh_restart_handler_state: stopped
-  pre_tasks:
-    - name: "Зупиняємо fail2ban на час hardening"
-      service:
-        name: fail2ban
-        state: stopped
-      ignore_errors: yes
-      become: yes
-
-    - name: "Розмаскуємо ssh.socket і ssh.service"
-      command: systemctl unmask {{ item }}
-      loop:
-        - ssh.socket
-        - ssh.service
-      become: yes
-      ignore_errors: yes
-
-    - name: "Вимикаємо ssh.socket"
-      systemd:
-        name: ssh.socket
-        enabled: no
-        state: stopped
-      become: yes
-      ignore_errors: yes
-
-    - name: "Вмикаємо ssh.service"
-      systemd:
-        name: ssh.service
-        enabled: yes
-        state: started
-        daemon_reload: yes
-      become: yes
-
-  roles:
-    - geerlingguy.security
-
-  post_tasks:
-    - name: "Рестарт SSH після hardening"
-      systemd:
-        name: ssh.service
-        state: restarted
-        daemon_reload: yes
-      become: yes
-      ignore_errors: yes
-
-    - name: "Чекаємо відновлення SSH"
-      wait_for_connection:
-        delay: 5
-        timeout: 90
-      become: no
-
-    - name: "Запускаємо fail2ban"
-      service:
-        name: fail2ban
-        state: started
-        enabled: yes
-      become: yes
-
-# Play 5: Перевірка результату
-- name: "Перевірка результату"
-  hosts: online_hosts
-  gather_facts: no
+  - role: geerlingguy.nginx
   tasks:
-    - name: "SSH доступний"
-      ping:
+    - name: Дозволити трафік на порт 80 (HTTP) через UFW
+      community.general.ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+        state: enabled
 
-    - name: "Статус fail2ban"
-      systemd:
-        name: fail2ban
-      register: f2b
-      become: yes
-
-    - debug:
-        msg: "fail2ban: {{ f2b.status.ActiveState }}"
+    - name: Створити користувацький index.html
+      ansible.builtin.copy:
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          <!DOCTYPE html>
+          <html lang="uk">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Вітаємо на сервері</title>
+              <style>
+                  body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+                  h1 { color: #333; }
+              </style>
+          </head>
+          <body>
+              <h1>Сервер успішно налаштовано за допомогою Ansible!</h1>
+              <p>Роль Nginx, UFW та кастомний index.html працюють.</p>
+              <p>Виконав: курсант Йолкін.</p>
+          </body>
+          </html>
