@@ -117,6 +117,13 @@
     - geerlingguy.security
 
   post_tasks:
+    - name: "Вбити залишкові процеси sshd"
+      shell: |
+        pkill -x sshd || true
+        sleep 1
+      become: yes
+      changed_when: false
+
     - name: "Рестарт SSH після hardening"
       systemd:
         name: ssh.service
