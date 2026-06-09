@@ -104,6 +104,12 @@
         daemon_reload: yes
       become: yes
 
+    - name: "Переконатись що ssh.service enabled"
+      systemd:
+        name: ssh.service
+        enabled: yes
+      become: yes
+
   vars:
     security_ssh_extra_config: |
       KbdInteractiveAuthentication no
@@ -113,6 +119,7 @@
     ssh_client_alive_count_max: 2
     security_autoupdate_enabled: true
     security_fail2ban_enabled: true
+    security_ssh_restart_handler_state: restarted
 
   roles:
     - geerlingguy.security
