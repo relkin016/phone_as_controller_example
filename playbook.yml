@@ -95,17 +95,10 @@
       become: yes
       ignore_errors: yes
 
-    - name: "Вмикаємо ssh.service"
-      systemd:
-        name: ssh.service
-        enabled: yes
-        state: started
-        daemon_reload: yes
-      become: yes
-
   vars:
     security_ssh_extra_config: |
       KbdInteractiveAuthentication no
+    security_sshd_state: running
     ssh_permit_root_login: "no"
     ssh_max_auth_retries: 3
     ssh_client_alive_interval: 300
