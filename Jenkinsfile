@@ -105,7 +105,7 @@ pipeline {
                     NMAP_OUT="${TMPDIR:-/tmp}/nmap_scan.txt"
 
                     echo "=== nmap сканування $TARGET_SUBNET ==="
-                    nmap -p 22 --open -sV \
+                    nmap -p 22 --open -sT --host-timeout 3s -Pn \
                          --script banner \
                          -oG "$NMAP_OUT" \
                          "$TARGET_SUBNET"
