@@ -124,6 +124,13 @@
         timeout: 90
       become: no
 
+    - name: "Запустити unattended-upgrades назад"
+      service:
+        name: unattended-upgrades
+        state: started
+        enabled: yes
+      become: yes
+
     - name: "Запускаємо fail2ban"
       service:
         name: fail2ban
