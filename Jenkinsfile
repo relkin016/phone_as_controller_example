@@ -61,7 +61,7 @@ pipeline {
                     } else {
                         echo "Інтернету немає — використовуємо локальний workspace"
                         if (!fileExists('playbook.yml')) {
-                            error("Workspace порожній і інтернету немає — неможливо оновити")
+                            error("Workspace порожній і інтернету немає — неможливо продовжити")
                         }
                     }
                 }

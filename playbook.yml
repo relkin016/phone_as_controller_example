@@ -1,4 +1,3 @@
-# Play 1: Пінг і формування групи online_hosts
 - name: "Перевірка з'єднання зі знайденими хостами"
   hosts: scanned
   gather_facts: no
@@ -9,24 +8,22 @@
       ignore_unreachable: yes
       register: host_ping
 
-    - name: "Додаємо хост до групи якщо відповів"
+    - name: "Додаємо хост до тимчасової групи, якщо він відповів"
       group_by:
         key: "online_hosts"
       when: host_ping.unreachable is not defined
 
-# Play 2: Зупинка якщо живих хостів 0
 - name: "Перевірка результатів пінгу"
   hosts: localhost
   gather_facts: no
   become: no
   tasks:
-    - name: "Зупиняємо пайплайн якщо живих хостів 0"
+    - name: "Зупиняємо пайплайн, якщо живих хостів 0"
       fail:
         msg: "КРИТИЧНА ПОМИЛКА: Жоден з хостів не відповів по SSH!"
       when: groups['online_hosts'] | default([]) | length == 0
 
-# Play 3: тільки OS hardening (sysctl, kernel, filesystem)
-- name: "OS Hardening"
+- name: "Розгортання конфігурації на доступних хостах"
   hosts: online_hosts
   gather_facts: yes
   pre_tasks:
@@ -51,7 +48,6 @@
         port: "22"
         proto: tcp
 
-# Play 4: тільки SSH + fail2ban
 - name: "SSH та Fail2ban hardening"
   hosts: online_hosts
   gather_facts: yes
@@ -160,7 +156,6 @@
         enabled: yes
       become: yes
 
-# Play 5: Перевірка результату
 - name: "Перевірка результату"
   hosts: online_hosts
   gather_facts: no
