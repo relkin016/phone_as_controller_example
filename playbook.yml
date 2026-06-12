@@ -193,10 +193,10 @@
                   <div class="details-grid">
                       <div class="detail-item">
                           <span class="detail-label">Модуль</span>
-                          <span class="detail-value">Система управління інфраструктурою</span>
+                          <span class="detail-value">Система керування інфраструктурою</span>
                       </div>
                       <div class="detail-item">
-                          <span class="detail-label">Оркестрація</span>
+                          <span class="detail-label">Автоматизація</span>
                           <span class="detail-value">Jenkins & Ansible</span>
                       </div>
                       <div class="detail-item">
@@ -205,7 +205,7 @@
                       </div>
                       <div class="detail-item">
                           <span class="detail-label">Тип вузла</span>
-                          <span class="detail-value">Мобільний вузол управління (MCN)</span>
+                          <span class="detail-value">Мобільний керуючий вузол (МКВ)</span>
                       </div>
                   </div>
           
